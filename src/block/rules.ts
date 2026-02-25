@@ -2,9 +2,24 @@ import { chunk } from "@elyukai/utils/array/groups"
 import { omitUndefinedKeys } from "@elyukai/utils/object"
 import { assertExhaustive } from "@elyukai/utils/typeSafety"
 import { detectIndentation, removeIndentation } from "../indentation.ts"
-import { parseBlockMarkdown, parseBlockMarkdownForSyntaxHighlighting, parseInlineMarkdown, parseInlineMarkdownForSyntaxHighlighting } from "../index.ts"
+import {
+  parseBlockMarkdown,
+  parseBlockMarkdownForSyntaxHighlighting,
+  parseInlineMarkdown,
+  parseInlineMarkdownForSyntaxHighlighting,
+} from "../index.ts"
 import { textNode, type InlineMarkdownNode, type TextNode } from "../inline/node.ts"
-import type { BlockMarkdownNode, BlockSyntaxMarkdownNode, DefinitionListBlockNode, ListBlockNode, ListItemNode, TableBlockNode, TableCellBlockNode, TableRowBlockNode, TableSectionBlockNode } from "./node.ts"
+import type {
+  BlockMarkdownNode,
+  BlockSyntaxMarkdownNode,
+  DefinitionListBlockNode,
+  ListBlockNode,
+  ListItemNode,
+  TableBlockNode,
+  TableCellBlockNode,
+  TableRowBlockNode,
+  TableSectionBlockNode,
+} from "./node.ts"
 
 export type BlockRule = {
   pattern: RegExp
@@ -60,7 +75,8 @@ const listRule: BlockRule = {
   mapHighlighting: result => {
     const listItemPairs = chunk((result[1] ?? "").split(/(?:^|\n)(\d+\.|-)/).slice(1), 2)
     const listItems = listItemPairs.flatMap(
-      ([marker = "", itemText = ""], itemIndex, itemArray): BlockSyntaxMarkdownNode[] => {
+      (item, itemIndex, itemArray): BlockSyntaxMarkdownNode[] => {
+        const [marker = "", itemText = ""] = item
         const [primaryContent = "", separator, ...additionalContents] = itemText.split(
           /(\n *\n|\n(?= +(?:\d+\.|-) ))/,
         )
@@ -440,7 +456,8 @@ const definitionListRule: BlockRule = {
   },
   mapHighlighting: ([_res, content = "", trailingWhitespace]): BlockSyntaxMarkdownNode[] => {
     const items = chunk(content.split(definitionListItemSeparatorPattern).slice(1), 2).flatMap(
-      ([termsText = "", definitionsText = ""]) => {
+      chunk => {
+        const [termsText = "", definitionsText = ""] = chunk
         const terms = termsText
           .split("\n")
           .flatMap((term, index, termArray) => [

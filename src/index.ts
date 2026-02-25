@@ -1,7 +1,27 @@
 import { assertExhaustive } from "@elyukai/utils/typeSafety"
-import type { BlockMarkdownNode, BlockSyntaxMarkdownNode, DefinitionMarkerSyntaxNode, FootnoteMarkerSyntaxNode, HeadingMarkerSyntaxNode, ListItemMarkerSyntaxNode, SectionMarkerSyntaxNode, TableMarkerSyntaxNode } from "./block/node.ts"
+import type {
+  BlockMarkdownNode,
+  BlockSyntaxMarkdownNode,
+  DefinitionMarkerSyntaxNode,
+  FootnoteMarkerSyntaxNode,
+  HeadingMarkerSyntaxNode,
+  ListItemMarkerSyntaxNode,
+  SectionMarkerSyntaxNode,
+  TableMarkerSyntaxNode,
+} from "./block/node.ts"
 import { blockRules, type BlockRule } from "./block/rules.ts"
-import { textNode, type AttributedStringMarkdownNode, type BoldMarkdownNode, type CodeMarkdownNode, type FootnoteRefInlineNode, type InlineMarkdownNode, type ItalicMarkdownNode, type LinkMarkdownNode, type SuperscriptInlineNode, type TextNode } from "./inline/node.ts"
+import {
+  textNode,
+  type AttributedStringMarkdownNode,
+  type BoldMarkdownNode,
+  type CodeMarkdownNode,
+  type FootnoteRefInlineNode,
+  type InlineMarkdownNode,
+  type ItalicMarkdownNode,
+  type LinkMarkdownNode,
+  type SuperscriptInlineNode,
+  type TextNode,
+} from "./inline/node.ts"
 import { inlineRules, type InlineRule } from "./inline/rules.ts"
 
 const parseForInlineRules = (
