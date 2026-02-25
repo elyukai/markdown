@@ -36,7 +36,7 @@ export const BlockMarkdown: FunctionalComponent<Props> = ({
           createElement(InlineMarkdown, { key: ii, node: inline, createElement }),
         ),
       )
-    case "heading":
+    case "heading": {
       const Tag = `h${(node.level + outerHeadingLevel).toString()}` as HtmlTag
       return createElement(
         Tag,
@@ -46,6 +46,7 @@ export const BlockMarkdown: FunctionalComponent<Props> = ({
           createElement(InlineMarkdown, { key: ii, node: inline, createElement }),
         ),
       )
+    }
     case "list": {
       const Tag = node.ordered ? "ol" : "ul"
       return createElement(

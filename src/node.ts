@@ -1,2 +1,2 @@
-export * from "./block/node.ts"
+export type * from "./block/node.ts"
 export * from "./inline/node.ts"

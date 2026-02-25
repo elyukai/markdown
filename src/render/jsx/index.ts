@@ -1,4 +1,6 @@
-type VNode<P = {}> = {
+import type { AnyNonNullish } from "@elyukai/utils/nullable"
+
+type VNode<P = AnyNonNullish> = {
   type: keyof TagProps | FunctionalComponent<P>
   props: P & { children: Element | Element[] }
 }

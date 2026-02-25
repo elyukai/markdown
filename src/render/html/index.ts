@@ -35,7 +35,7 @@ export const renderInlineMarkdownNode = (env: Env, node: InlineMarkdownNode): st
       return (
         env.renderAttributedString?.(node) ??
         `<span class="attributed"${Object.entries(node.attributes)
-          .map(([k, v]) => ` data-${k}="${v}"`)
+          .map(([k, v]) => ` data-${k}="${v.toString()}"`)
           .join(
             "",
           )}>${node.content.map(content => renderInlineMarkdownNode(env, content)).join("")}</span>`
@@ -44,9 +44,10 @@ export const renderInlineMarkdownNode = (env: Env, node: InlineMarkdownNode): st
       return node.content
     case "superscript":
       return `<sup>${node.content.map(content => renderInlineMarkdownNode(env, content)).join("")}</sup>`
-    case "footnoteRef":
+    case "footnoteRef": {
       const isNumeric = /^\d+$/.test(node.label)
       return `<sup class="footnote-ref${isNumeric ? " footnote-ref--numeric" : ""}" style="--label: ${node.label}" data-reference="${node.label}">${node.label}</sup>`
+    }
     default:
       return assertExhaustive(node)
   }
@@ -70,7 +71,7 @@ const renderTableRow = (
       ([elements, columnIndex], tc) => [
         [
           ...elements,
-          `<${cellType}${tc.colSpan !== undefined ? ` colspan="${tc.colSpan}"` : ""}${cellType === "th" && cells.length === 1 ? ` scope="colgroup"` : ""}${
+          `<${cellType}${tc.colSpan !== undefined ? ` colspan="${tc.colSpan.toString()}"` : ""}${cellType === "th" && cells.length === 1 ? ` scope="colgroup"` : ""}${
             columns[columnIndex]?.alignment
               ? ` style="text-align: ${columns[columnIndex].alignment}"`
               : ""
@@ -96,8 +97,9 @@ export const renderBlockMarkdownNode = (
       ]
     case "heading": {
       const { outerHeadingLevel = 0 } = env
+      const level = (node.level + outerHeadingLevel).toString()
       return [
-        `<h${node.level + outerHeadingLevel}>${insertBefore ?? ""}${node.content.map(content => renderInlineMarkdownNode(env, content)).join("")}</h${node.level + outerHeadingLevel}>`,
+        `<h${level}>${insertBefore ?? ""}${node.content.map(content => renderInlineMarkdownNode(env, content)).join("")}</h${level}>`,
       ]
     }
     case "list":
