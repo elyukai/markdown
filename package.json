@@ -12,7 +12,7 @@
   "main": "dist/src/index.js",
   "exports": {
     ".": "./dist/src/index.js",
-    "./types": "./dist/src/node.js",
+    "./types": "./dist/src/types.js",
     "./render/html": "./dist/src/render/html/index.js"
   },
   "scripts": {
