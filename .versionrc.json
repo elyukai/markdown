@@ -1,3 +1,23 @@
 {
-  "releaseCommitMessageFormat": "build(release): {{currentTag}}"
+  "releaseCommitMessageFormat": "build(release): {{currentTag}}",
+  "packageFiles": [
+    {
+      "filename": "package.json",
+      "type": "json"
+    }
+  ],
+  "bumpFiles": [
+    {
+      "filename": "package.json",
+      "type": "json"
+    },
+    {
+      "filename": "package-lock.json",
+      "type": "json"
+    },
+    {
+      "filename": "jsr.json",
+      "type": "json"
+    }
+  ]
 }
