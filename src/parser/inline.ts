@@ -1,7 +1,9 @@
 import { removeAt } from "@elyukai/utils/array/modify"
 import { isNotEmpty, type NonEmptyArray } from "@elyukai/utils/array/nonEmpty"
 import { Parser } from "@elyukai/utils/parser"
+import { StateTParser as SParser } from "@elyukai/utils/stateParser"
 import { assertExhaustive } from "@elyukai/utils/typeSafety"
+import type { S, StatefulParser } from "./state.ts"
 
 const defaultInlineSyntaxStartCharacters = ["*", "`", "[", "_", "{", "}", "|", "#", "!", "^"]
 
@@ -49,63 +51,66 @@ export const trimLastNodeEnd = (nodes: InlineMarkdownNode[]): InlineMarkdownNode
   }
 }
 
-const anyStopOn = (charactersToStopOnIfNotEscaped: string[], nonEmpty = true): Parser<string> =>
-  new Parser(syntax => {
-    if (nonEmpty && (syntax.length === 0 || syntax.startsWith("\n"))) {
-      return []
-    }
-
-    for (let i = 0; i < syntax.length; i++) {
-      if (syntax[i] === "\\" && i + 1 < syntax.length && syntax[i + 1] !== "\n") {
-        // skip next character because it's escaped
-        i++
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      } else if (charactersToStopOnIfNotEscaped.includes(syntax[i]!) || syntax[i] === "\n") {
-        // const trimmed = syntax.slice(0, i).trimEnd()
-        // if (i === 0 || (trimmed.length === 0 && nonEmpty)) {
-        //   return []
-        // }
-        // return [[trimmed, syntax.slice(trimmed.length)]]
-        return i === 0 ? [] : [[syntax.slice(0, i), syntax.slice(i)]]
+const anyStopOn = (
+  charactersToStopOnIfNotEscaped: string[],
+  nonEmpty = true,
+): StatefulParser<string> =>
+  SParser.lift(
+    new Parser(syntax => {
+      if (nonEmpty && (syntax.length === 0 || syntax.startsWith("\n"))) {
+        return []
       }
-    }
 
-    return [[syntax, ""]]
-  })
+      for (let i = 0; i < syntax.length; i++) {
+        if (syntax[i] === "\\" && i + 1 < syntax.length && syntax[i + 1] !== "\n") {
+          // skip next character because it's escaped
+          i++
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        } else if (charactersToStopOnIfNotEscaped.includes(syntax[i]!) || syntax[i] === "\n") {
+          // const trimmed = syntax.slice(0, i).trimEnd()
+          // if (i === 0 || (trimmed.length === 0 && nonEmpty)) {
+          //   return []
+          // }
+          // return [[trimmed, syntax.slice(trimmed.length)]]
+          return i === 0 ? [] : [[syntax.slice(0, i), syntax.slice(i)]]
+        }
+      }
 
-const combineParsers = <T>(parsers: NonEmptyArray<Parser<T>>): Parser<T> =>
+      return [[syntax, ""]]
+    }),
+  )
+
+const combineParsers = <T>(parsers: NonEmptyArray<StatefulParser<T>>): StatefulParser<T> =>
   parsers.reduce((acc, parser) => acc.orFirst(parser))
 
 const parseEscapedCharacters = (text: string) => text.replace(/\\([*_`{}[\]()\\#+-.!^])/g, "$1")
 
-const text = (syntaxStartCharacters: string[]): Parser<Text> =>
+const text = (syntaxStartCharacters: string[]): StatefulParser<Text> =>
   anyStopOn(syntaxStartCharacters).then(result =>
-    Parser.of({ type: "text", content: parseEscapedCharacters(result) }),
+    SParser.of({ type: "text", content: parseEscapedCharacters(result) }),
   )
 
-const codeDelimiter = Parser.string("`")
+const codeDelimiter = SParser.string<S>("`")
 const codeText = anyStopOn(["`"]).then(result =>
-  Parser.of<Text>({ type: "text", content: result.replace(/\\`/g, "`") }),
+  SParser.of<S, Text>({ type: "text", content: result.replace(/\\`/g, "`") }),
 )
-const code: Parser<Code> = codeDelimiter.then(() =>
-  codeText.then(content => codeDelimiter.then(() => Parser.of({ type: "code", content }))),
+const code: StatefulParser<Code> = codeDelimiter.then(() =>
+  codeText.then(content => codeDelimiter.then(() => SParser.of({ type: "code", content }))),
 )
 
-export const footnoteRef: Parser<FootnoteRef> = Parser.regex(/^[a-zA-Z0-9]+/)
-  .between(Parser.string("[^"), Parser.string("]"))
-  .then(label => Parser.of({ type: "footnoteRef", label }))
+export const footnoteRef: StatefulParser<FootnoteRef> = SParser.regex<S>(/^[a-zA-Z0-9]+/)
+  .between(SParser.string("[^"), SParser.string("]"))
+  .then(label => SParser.of({ type: "footnoteRef", label }))
 
-const leafParsers = (syntaxStartCharacters: string[]): NonEmptyArray<Parser<LeafContent>> => [
-  code,
-  footnoteRef,
-  text(syntaxStartCharacters),
-]
+const leafParsers = (
+  syntaxStartCharacters: string[],
+): NonEmptyArray<StatefulParser<LeafContent>> => [code, footnoteRef, text(syntaxStartCharacters)]
 
 const leafParser = (syntaxStartCharacters: string[]) =>
   combineParsers(leafParsers(syntaxStartCharacters))
 
 type RecursiveParser<T> = [
-  (possibleContent: Parser<InlineMarkdownNode>) => Parser<T>,
+  (possibleContent: StatefulParser<InlineMarkdownNode>) => StatefulParser<T>,
   additionalSyntaxStartCharacters?: string[],
 
   /**
@@ -115,27 +120,27 @@ type RecursiveParser<T> = [
 ]
 
 const uniformBetweenSyntax = <T extends string>(
-  delimiter: Parser<string>,
+  delimiter: StatefulParser<string>,
   type: T,
 ): RecursiveParser<{ type: T; content: InlineMarkdownNode[] }> => [
   possibleContent =>
     delimiter.then(() =>
-      possibleContent.many1().then(content => delimiter.then(() => Parser.of({ type, content }))),
+      possibleContent.many1().then(content => delimiter.then(() => SParser.of({ type, content }))),
     ),
 ]
 
-const boldDelimiter = Parser.string("**")
+const boldDelimiter = SParser.string<S>("**")
 const bold = uniformBetweenSyntax(boldDelimiter, "bold")
 
-const italicDelimiter = Parser.string("*")
+const italicDelimiter = SParser.string<S>("*")
 const italic = uniformBetweenSyntax(italicDelimiter, "italic")
 
-const superscriptDelimiter = Parser.string("^")
+const superscriptDelimiter = SParser.string<S>("^")
 const superscript = uniformBetweenSyntax(superscriptDelimiter, "superscript")
 
-const linkStartDelimiter = Parser.string("[")
-const linkMiddleDelimiter = Parser.string("](")
-const linkEndDelimiter = Parser.string(")")
+const linkStartDelimiter = SParser.string<S>("[")
+const linkMiddleDelimiter = SParser.string<S>("](")
+const linkEndDelimiter = SParser.string<S>(")")
 const link: RecursiveParser<Link> = [
   possibleContent =>
     linkStartDelimiter.then(() =>
@@ -144,7 +149,7 @@ const link: RecursiveParser<Link> = [
         .then(content =>
           linkMiddleDelimiter.then(() =>
             anyStopOn([")"]).then(href =>
-              linkEndDelimiter.then(() => Parser.of({ type: "link", href, content })),
+              linkEndDelimiter.then(() => SParser.of({ type: "link", href, content })),
             ),
           ),
         ),
@@ -152,27 +157,27 @@ const link: RecursiveParser<Link> = [
   ["]"],
 ]
 
-const attributedStartDelimiter = Parser.string("^[")
-const attributedMiddleDelimiter = Parser.string("](")
-const attributedEndDelimiter = Parser.string(")")
+const attributedStartDelimiter = SParser.string<S>("^[")
+const attributedMiddleDelimiter = SParser.string<S>("](")
+const attributedEndDelimiter = SParser.string<S>(")")
 
-const attributeStringValue = Parser.regex(/^[^"]*/)
-  .between(Parser.string('"'), Parser.string('"'))
-  .then(value => Parser.of(value))
-const attributeNumberValue = Parser.regex(/^-?\d+(\.\d+)?/).map(Number.parseFloat)
-const attributeBooleanValue = Parser.regex(/^(true|false)/).map(value => value === "true")
+const attributeStringValue = SParser.regex<S>(/^[^"]*/)
+  .between(SParser.string('"'), SParser.string('"'))
+  .then(value => SParser.of(value))
+const attributeNumberValue = SParser.regex<S>(/^-?\d+(\.\d+)?/).map(Number.parseFloat)
+const attributeBooleanValue = SParser.regex<S>(/^(true|false)/).map(value => value === "true")
 const attributeValue = attributeBooleanValue
   .orFirstW(attributeNumberValue)
   .orFirstW(attributeStringValue)
   .token()
-const attributeName = Parser.regex(/^\w+/)
+const attributeName = SParser.regex<S>(/^\w+/)
 
 const attribute = attributeName.then(name =>
-  Parser.symb(":").then(() =>
-    attributeValue.then(value => Parser.of<[string, string | number | boolean]>([name, value])),
+  SParser.hsymb<S, ":">(":").then(() =>
+    attributeValue.then(value => SParser.of<S, [string, string | number | boolean]>([name, value])),
   ),
 )
-const attributes = attribute.separatedBy1(Parser.symb(","))
+const attributes = attribute.separatedBy1(SParser.hsymb(","))
 
 const attributed: RecursiveParser<Attributed> = [
   possibleContent =>
@@ -183,7 +188,7 @@ const attributed: RecursiveParser<Attributed> = [
           attributedMiddleDelimiter.then(() =>
             attributes.then(attrs =>
               attributedEndDelimiter.then(() =>
-                Parser.of({ type: "attributed", attributes: Object.fromEntries(attrs), content }),
+                SParser.of({ type: "attributed", attributes: Object.fromEntries(attrs), content }),
               ),
             ),
           ),
@@ -196,7 +201,7 @@ const attributed: RecursiveParser<Attributed> = [
 const mapRecursiveParsers = (
   parsers: RecursiveParser<RecursiveContent>[],
   syntaxStartCharacters: string[],
-): Parser<RecursiveContent>[] =>
+): StatefulParser<RecursiveContent>[] =>
   parsers.map((parser, i, arr) => {
     const [createParser, additionalSyntaxStartCharacters = [], excludedParsers = []] = parser
     const newSyntaxStartCharacters = [...syntaxStartCharacters, ...additionalSyntaxStartCharacters]
@@ -209,7 +214,9 @@ const mapRecursiveParsers = (
           newSyntaxStartCharacters,
         ),
         leafParser(newSyntaxStartCharacters),
-      ] satisfies Parser<InlineMarkdownNode>[] as NonEmptyArray<Parser<InlineMarkdownNode>>),
+      ] satisfies StatefulParser<InlineMarkdownNode>[] as NonEmptyArray<
+        StatefulParser<InlineMarkdownNode>
+      >),
     )
   })
 
@@ -224,12 +231,14 @@ const recursiveParsers: NonEmptyArray<RecursiveParser<RecursiveContent>> = [
 export const inlineNode = combineParsers([
   ...mapRecursiveParsers(recursiveParsers, defaultInlineSyntaxStartCharacters),
   leafParser(defaultInlineSyntaxStartCharacters),
-] satisfies Parser<InlineMarkdownNode>[] as NonEmptyArray<Parser<InlineMarkdownNode>>)
+] satisfies StatefulParser<InlineMarkdownNode>[] as NonEmptyArray<
+  StatefulParser<InlineMarkdownNode>
+>)
 
-export const inlineMarkdown: Parser<InlineMarkdownNode[]> = inlineNode.many()
+export const inlineMarkdown: StatefulParser<InlineMarkdownNode[]> = inlineNode.many()
 
-export const parseInlineMarkdown = (syntax: string): InlineMarkdownNode[] => {
-  const results = inlineMarkdown.parse(syntax)
+export const parseInlineMarkdown = (syntax: string, keepSyntax = false): InlineMarkdownNode[] => {
+  const results = inlineMarkdown.evalT({ indentation: 0, keepSyntax }).parse(syntax)
 
   if (!isNotEmpty(results)) {
     throw new Error(`Failed to parse`)

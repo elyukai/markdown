@@ -1,30 +1,19 @@
 import { isNotEmpty } from "@elyukai/utils/array/nonEmpty"
 import { omitUndefinedKeys } from "@elyukai/utils/object"
-import { Parser } from "@elyukai/utils/parser"
-import { StateTParser } from "@elyukai/utils/stateParser"
+import { StateTParser as SParser } from "@elyukai/utils/stateParser"
 import {
   footnoteRef,
-  inlineMarkdown,
   inlineNode,
+  inlineMarkdown as inlineNodes,
   trimLastNodeEnd,
   type InlineMarkdownNode,
 } from "./inline.ts"
+import type { S, StatefulParser } from "./state.ts"
 
-type BlockState = {
-  indentation: number
-}
-
-type S = BlockState
-
-type StatefulParser<T> = StateTParser<S, T>
-const lift: <T>(parser: Parser<T>) => StatefulParser<T> = parser => StateTParser.lift(parser)
-const anySpacesT = StateTParser.regex<S>(/^ */)
-const oneOrMoreSpacesT = StateTParser.regex<S>(/^ +/)
-const newlineT = StateTParser.string<S>("\n")
-const anyWhitespaceT = StateTParser.space<S>()
-
-const inlineNodeT: StatefulParser<InlineMarkdownNode> = StateTParser.lift(inlineNode)
-const inlineNodesT: StatefulParser<InlineMarkdownNode[]> = StateTParser.lift(inlineMarkdown)
+const anySpacesT = SParser.regex<S>(/^ */)
+const oneOrMoreSpacesT = SParser.regex<S>(/^ +/)
+const newlineT = SParser.string<S>("\n")
+const anyWhitespaceT = SParser.space<S>()
 
 export type Break = { type: "break" }
 
@@ -114,11 +103,11 @@ export type BlockMarkdownNode =
   | Heading
   | Paragraph
 
-const indentation: StatefulParser<string> = StateTParser.getT<S>().then(state =>
-  StateTParser.string(" ".repeat(state.indentation)),
+const indentation: StatefulParser<string> = SParser.getT<S>().then(state =>
+  SParser.string(" ".repeat(state.indentation)),
 )
 
-const getIndentation = StateTParser.getsT((state: S) => state.indentation)
+const getIndentation = SParser.getsT((state: S) => state.indentation)
 const increaseIndentation = (state: S) => ({
   ...state,
   indentation: state.indentation + 2,
@@ -133,19 +122,19 @@ const withIndentation = <T>(parser: StatefulParser<T>): StatefulParser<T> =>
 
     return parser
       .withT(increaseIndentation)
-      .then(content => StateTParser.of<S, T>(content).withT(resetIndentation))
+      .then(content => SParser.of<S, T>(content).withT(resetIndentation))
   })
 
-const lineBreak: StatefulParser<Break> = StateTParser.regex<S>(/\n(?!\s*\n|\s*$)/)
+const lineBreak: StatefulParser<Break> = SParser.regex<S>(/\n(?!\s*\n|\s*$)/)
   .then(() => indentation)
   .map(() => ({
     type: "break",
   }))
 
-const paragraphContent: StatefulParser<ParagraphContent[]> = lineBreak.orFirstW(inlineNodeT).many1()
+const paragraphContent: StatefulParser<ParagraphContent[]> = lineBreak.orFirstW(inlineNode).many1()
 
-const paragraph: StatefulParser<Paragraph> = StateTParser.negativeLookahead(
-  StateTParser.regex<S>(/^:{1,3} +\S+|^:{3}$|^:{3}\s*\n/u),
+const paragraph: StatefulParser<Paragraph> = SParser.negativeLookahead(
+  SParser.regex<S>(/^:{1,3} +\S+|^:{3}$|^:{3}\s*\n/u),
 )
   .then(() => paragraphContent)
   .map(content => ({
@@ -153,10 +142,10 @@ const paragraph: StatefulParser<Paragraph> = StateTParser.negativeLookahead(
     content,
   }))
 
-const headingDelimiter = lift(Parser.regex(/^#{1,6}/))
+const headingDelimiter = SParser.regex<S>(/^#{1,6}/)
 const heading: StatefulParser<Heading> = headingDelimiter.then(result =>
   oneOrMoreSpacesT.then(() =>
-    inlineNodesT.map(content => ({ type: "heading", level: result.length, content })),
+    inlineNodes.map(content => ({ type: "heading", level: result.length, content })),
   ),
 )
 
@@ -164,13 +153,13 @@ const singleLineBreakAndIndentation = newlineT.then(() => indentation)
 const strictBlankLines = anySpacesT.then(() => newlineT).many1()
 const blankLines = newlineT.then(() => strictBlankLines).then(() => indentation)
 
-const unorderedListItemStartDelimiter = lift(Parser.string<string>("-"))
-const orderedListItemStartDelimiter = lift(Parser.regex(/^\d+\./))
+const unorderedListItemStartDelimiter = SParser.string<S>("-")
+const orderedListItemStartDelimiter = SParser.regex<S>(/^\d+\./)
 const listItemContent = oneOrMoreSpacesT
-  .then(() => inlineNodesT)
+  .then(() => inlineNodes)
   .then(inlineLabel =>
     withIndentation(singleLineBreakAndIndentation.then(() => blockMarkdown))
-      .orFirst(StateTParser.of([]))
+      .orFirst(SParser.of([]))
       .map((content): ListItem => ({ type: "listItem", inlineLabel, content })),
   )
 
@@ -183,12 +172,12 @@ const list = (start: StatefulParser<string>, ordered: boolean): StatefulParser<L
 const orderedList = list(orderedListItemStartDelimiter, true)
 const unorderedList = list(unorderedListItemStartDelimiter, false)
 
-const definitionTerms = lift(Parser.lookahead(Parser.regex(/^(?!: ).+/)))
-  .then(() => inlineNodeT.many1())
+const definitionTerms = SParser.lookahead(SParser.regex<S>(/^(?!: ).+/))
+  .then(() => inlineNode.many1())
   .separatedBy1(singleLineBreakAndIndentation)
 
 const definitionDescriptions = singleLineBreakAndIndentation
-  .then(() => lift(Parser.string(": ")).then(() => withIndentation(blockMarkdown)))
+  .then(() => SParser.string<S>(": ").then(() => withIndentation(blockMarkdown)))
   .many1()
 
 const definitionList = definitionTerms
@@ -200,8 +189,8 @@ const definitionList = definitionTerms
   .separatedBy1(blankLines)
   .map((content): DefinitionList => ({ type: "definitionList", content }))
 
-const containerDelimiter = lift(Parser.string(":::"))
-const containerName = lift(Parser.regex(/^\w+/))
+const containerDelimiter = SParser.string<S>(":::")
+const containerName = SParser.regex<S>(/^\w+/)
 
 const container: StatefulParser<Container> = containerDelimiter
   .then(() => oneOrMoreSpacesT)
@@ -217,8 +206,8 @@ const container: StatefulParser<Container> = containerDelimiter
       ),
   )
 
-const footnote: StatefulParser<Footnote> = lift(footnoteRef).then(ref =>
-  lift(Parser.string(":"))
+const footnote: StatefulParser<Footnote> = footnoteRef.then(ref =>
+  SParser.string<S>(":")
     .then(() => oneOrMoreSpacesT)
     .then(() => withIndentation(blockMarkdown))
     .map(content => ({
@@ -228,42 +217,42 @@ const footnote: StatefulParser<Footnote> = lift(footnoteRef).then(ref =>
     })),
 )
 
-const tableHeaderSeparatorCell = lift(Parser.regex(/^:?-+:?/))
-const tableSectionWithSubheaderSeparatorCell = lift(Parser.regex(/^={3,}/))
-const tableSectionSeparatorCell = lift(Parser.regex(/^-{3,}/))
+const tableHeaderSeparatorCell = SParser.regex<S>(/^:?-+:?/)
+const tableSectionWithSubheaderSeparatorCell = SParser.regex<S>(/^={3,}/)
+const tableSectionSeparatorCell = SParser.regex<S>(/^-{3,}/)
 const getAlignmentFromSeparator = (separator: string): TableColumnStyle["alignment"] => {
   const left = separator.startsWith(":")
   const right = separator.endsWith(":")
   return left ? (right ? "center" : "left") : right ? "right" : undefined
 }
-const tableSeparator = StateTParser.string<S>("|")
-const tableContentCellGuard = StateTParser.lookahead(StateTParser.regex<S>(/^ *\w+/u))
+const tableSeparator = SParser.string<S>("|")
+const tableContentCellGuard = SParser.lookahead(SParser.regex<S>(/^ *\w+/u))
 const tableRow = <T>(parser: StatefulParser<T>): StatefulParser<T[]> =>
   tableSeparator
     .htoken()
     .then(() => parser.separatedBy1(tableSeparator.htoken()))
     .then(header => tableSeparator.map(() => header))
 
-const tableCaptionRow = StateTParser.string<S>("|#")
+const tableCaptionRow = SParser.string<S>("|#")
   .htoken()
-  .then(() => inlineNodesT.htoken())
+  .then(() => inlineNodes.htoken())
   .then(caption =>
-    StateTParser.string<S>("#|")
+    SParser.string<S>("#|")
       .htoken()
       .then(() => newlineT)
       .map(() => caption),
   )
   .optional()
 
-const tableHeaderRow = tableRow(tableContentCellGuard.then(() => inlineNodesT))
+const tableHeaderRow = tableRow(tableContentCellGuard.then(() => inlineNodes))
 const tableSeparatorRow = tableRow(tableHeaderSeparatorCell)
 const tableSectionNormalRow = tableRow(
   tableContentCellGuard
-    .then(() => inlineNodesT)
+    .then(() => inlineNodes)
     .htoken()
     .then(content =>
-      StateTParser.lookahead(StateTParser.string<S>("||"))
-        .then(() => StateTParser.string("|"))
+      SParser.lookahead(SParser.string<S>("||"))
+        .then(() => SParser.string("|"))
         .many()
         .map(span => ({ content, span: span.length > 0 ? span.length + 1 : undefined })),
     ),
@@ -368,8 +357,8 @@ const finalBlockMarkdown: StatefulParser<BlockMarkdownNode[] | undefined> = bloc
   .then(result => anyWhitespaceT.map(() => result))
   .optional()
 
-export const parseBlockMarkdown = (syntax: string): BlockMarkdownNode[] => {
-  const results = finalBlockMarkdown.evalT({ indentation: 0 }).apply(syntax)
+export const parseBlockMarkdown = (syntax: string, keepSyntax = false): BlockMarkdownNode[] => {
+  const results = finalBlockMarkdown.evalT({ indentation: 0, keepSyntax }).apply(syntax)
 
   if (!isNotEmpty(results)) {
     throw new Error(`Failed to parse`)
