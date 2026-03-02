@@ -41,6 +41,6 @@
     "url": "https://github.com/elyukai/markdown/issues"
   },
   "dependencies": {
-    "@elyukai/utils": "^0.2.8"
+    "@elyukai/utils": "^0.2.9"
   }
 }
