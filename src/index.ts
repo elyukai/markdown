@@ -1,5 +1,5 @@
 import { assertExhaustive } from "@elyukai/utils/typeSafety"
-import type { BlockSyntaxMarkdownNode } from "./block/node.ts"
+import type { BlockMarkdownSyntaxNode } from "./parser/block.ts"
 
 export {
   parseInlineMarkdown,
@@ -41,8 +41,8 @@ export {
   type TableSection,
 } from "./parser/block.ts"
 
-export const syntaxNodeToString = (node: BlockSyntaxMarkdownNode): string => {
-  switch (node.kind) {
+export const syntaxNodeToString = (node: BlockMarkdownSyntaxNode): string => {
+  switch (node.type) {
     case "bold":
     case "italic":
     case "link":
@@ -51,15 +51,9 @@ export const syntaxNodeToString = (node: BlockSyntaxMarkdownNode): string => {
       return node.content.map(syntaxNodeToString).join("")
     case "text":
     case "code":
-    case "listItemMarker":
-    case "tableMarker":
-    case "headingMarker":
-    case "sectionMarker":
-    case "footnoteMarker":
-    case "definitionMarker":
-      return node.content
+    case "syntax":
     case "footnoteRef":
-      return node.label
+      return node.content
     default:
       return assertExhaustive(node)
   }
