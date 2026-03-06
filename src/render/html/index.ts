@@ -1,13 +1,13 @@
 import { isNotNullish } from "@elyukai/utils/nullable"
 import { assertExhaustive } from "@elyukai/utils/typeSafety"
-import type {
-  BlockMarkdownNode,
-  TableCellBlockNode,
-  TableColumnStyleBlockNode,
-} from "../../block/node.ts"
-import { checkTableRowsAreSections } from "../../block/rules.ts"
 import { parseBlockMarkdown, parseInlineMarkdown } from "../../index.ts"
-import type { AttributedStringMarkdownNode, InlineMarkdownNode } from "../../inline/node.ts"
+import {
+  checkTableRowsAreSections,
+  type BlockMarkdownNode,
+  type TableCell,
+  type TableColumnStyle,
+} from "../../parser/block.js"
+import type { Attributed, InlineMarkdownNode } from "../../parser/inline.ts"
 
 type Syntax = string[]
 
@@ -15,14 +15,14 @@ type Env = {
   indentation?: number
   outerHeadingLevel?: number
   footnoteLabelSuffix?: string
-  renderAttributedString?: (node: AttributedStringMarkdownNode) => string
+  renderAttributedString?: (node: Attributed) => string
 }
 
 const indent = ({ indentation }: Env, syntax: Syntax): Syntax =>
   indentation ? syntax.map(line => " ".repeat(indentation) + line) : syntax
 
 export const renderInlineMarkdownNode = (env: Env, node: InlineMarkdownNode): string => {
-  switch (node.kind) {
+  switch (node.type) {
     case "bold":
       return `<strong>${node.content.map(content => renderInlineMarkdownNode(env, content)).join("")}</strong>`
     case "italic":
@@ -45,8 +45,7 @@ export const renderInlineMarkdownNode = (env: Env, node: InlineMarkdownNode): st
     case "superscript":
       return `<sup>${node.content.map(content => renderInlineMarkdownNode(env, content)).join("")}</sup>`
     case "footnoteRef": {
-      const isNumeric = /^\d+$/.test(node.label)
-      return `<sup class="footnote-ref${isNumeric ? " footnote-ref--numeric" : ""}" style="--label: ${node.label}" data-reference="${node.label}">${node.label}</sup>`
+      return `<sup class="footnote-ref${typeof node.label === "number" ? " footnote-ref--numeric" : ""}" style="--label: ${node.label.toString()}" data-reference="${node.label.toString()}">${node.label.toString()}</sup>`
     }
     default:
       return assertExhaustive(node)
@@ -60,8 +59,8 @@ export const renderInlineMarkdownAsHTML = (env: Env, markdown: string): string =
 
 const renderTableRow = (
   env: Env,
-  columns: TableColumnStyleBlockNode[],
-  cells: TableCellBlockNode[],
+  columns: TableColumnStyle[],
+  cells: TableCell[],
   cellType: "td" | "th" = "td",
 ): Syntax => [
   "<tr>",
@@ -90,10 +89,10 @@ export const renderBlockMarkdownNode = (
   node: BlockMarkdownNode,
   insertBefore?: string,
 ): string[] => {
-  switch (node.kind) {
+  switch (node.type) {
     case "paragraph":
       return [
-        `<p>${insertBefore ?? ""}${node.content.map(content => renderInlineMarkdownNode(env, content)).join("")}</p>`,
+        `<p>${insertBefore ?? ""}${node.content.map(content => (content.type === "break" ? "<br>" : renderInlineMarkdownNode(env, content))).join("")}</p>`,
       ]
     case "heading": {
       const { outerHeadingLevel = 0 } = env
@@ -183,8 +182,7 @@ export const renderBlockMarkdownNode = (
         "</div>",
       ]
     case "footnote": {
-      const isNumeric = /^\d+$/.test(node.label)
-      const label = `<span class="footnote__label${isNumeric ? " footnote__label--numeric" : ""}" data-reference="${node.label}" style="--label: ${node.label}"><span class="footnote-label">${node.label}</span>${env.footnoteLabelSuffix ?? ""}</span> `
+      const label = `<span class="footnote__label${typeof node.label === "number" ? " footnote__label--numeric" : ""}" data-reference="${node.label.toString()}" style="--label: ${node.label.toString()}"><span class="footnote-label">${node.label.toString()}</span>${env.footnoteLabelSuffix ?? ""}</span> `
 
       return [
         `<div role="note" class="footnote">`,
@@ -212,7 +210,7 @@ export const renderBlockMarkdownNode = (
               ...item.terms.flatMap(term => [
                 `<dt>${term.map(content => renderInlineMarkdownNode(env, content)).join("")}</dt>`,
               ]),
-              ...item.definitions.flatMap(def => [
+              ...item.descriptions.flatMap(def => [
                 `<dd>${def.map(content => renderBlockMarkdownNode(env, content)).join("")}</dd>`,
               ]),
             ]),

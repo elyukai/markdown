@@ -14,7 +14,7 @@ export type InlineRule = {
 }
 
 const codeRule: InlineRule = {
-  pattern: /`(.*?)`/,
+  pattern: /`(.*?)`/u,
   map: result => ({
     kind: "code",
     content: result[1] ?? "",
@@ -26,7 +26,7 @@ const codeRule: InlineRule = {
 }
 
 const boldWithItalicRule: InlineRule = {
-  pattern: /(?<!\\|\*\*.*)\*\*(([^\\*]*)?\*(?!\*).*?[^\\*]\*.*?)(?<!\\)\*\*/,
+  pattern: /(?<!\\|\*\*.*)\*\*(([^\\*]*)?\*(?!\*).*?[^\\*]\*.*?)(?<!\\)\*\*/u,
   map: (result, parseInside) => ({
     kind: "bold",
     content: parseInside(result[1] ?? ""),
@@ -39,7 +39,7 @@ const boldWithItalicRule: InlineRule = {
 
 const italicWithBoldRule: InlineRule = {
   pattern:
-    /(?<![\\*]|[^\\]\*.*)\*(?=\*\*|[^*])([^*]*?\*\*[^*]*?\*\*[^*]*?)(?<=[^\\*]|[^\\]\*\*)\*(?!\*)/,
+    /(?<![\\*]|[^\\]\*.*)\*(?=\*\*|[^*])([^*]*?\*\*[^*]*?\*\*[^*]*?)(?<=[^\\*]|[^\\]\*\*)\*(?!\*)/u,
   map: (result, parseInside) => ({
     kind: "italic",
     content: parseInside(result[1] ?? ""),
@@ -51,7 +51,7 @@ const italicWithBoldRule: InlineRule = {
 }
 
 const boldRule: InlineRule = {
-  pattern: /(?<!\\)\*\*(.*?[^\\*])\*\*/,
+  pattern: /(?<!\\)\*\*(.*?[^\\*])\*\*/u,
   map: (result, parseInside) => ({
     kind: "bold",
     content: parseInside(result[1] ?? ""),
@@ -63,7 +63,7 @@ const boldRule: InlineRule = {
 }
 
 const italicRule: InlineRule = {
-  pattern: /(?<!\\)\*(.*?[^\\*])\*/,
+  pattern: /(?<!\\)\*(.*?[^\\*])\*/u,
   map: (result, parseInside) => ({
     kind: "italic",
     content: parseInside(result[1] ?? ""),
@@ -75,7 +75,7 @@ const italicRule: InlineRule = {
 }
 
 const linkRule: InlineRule = {
-  pattern: /(?<![\\^])\[(.*?[^\\])\]\((.*?[^\\])\)/,
+  pattern: /(?<![\\^])\[(.*?[^\\])\]\((.*?[^\\])\)/u,
   map: (result, parseInside) => ({
     kind: "link",
     href: result[2] ?? "",
@@ -90,7 +90,7 @@ const linkRule: InlineRule = {
 
 const booleanAttributePattern = /^(true|false)/
 const numberAttributePattern = /^(-?\d+(\.\d+)?)/
-const stringAttributePattern = /^("(.*?)(?<!\\)"|'(.*?)(?<!\\)')/
+const stringAttributePattern = /^("(.*?)(?<!\\)"|'(.*?)(?<!\\)')/u
 
 const parseAttributeValue = (text: string): [string | number | boolean, string] | null => {
   const booleanResult = booleanAttributePattern.exec(text)
@@ -111,7 +111,7 @@ const parseAttributeValue = (text: string): [string | number | boolean, string] 
   return null
 }
 
-const attributeNamePattern = /^(\w+)(: *)/
+const attributeNamePattern = /^(\w+)(: *)/u
 const attributeSeparatorPattern = /^,( *)/
 
 type RawAttribute =
@@ -180,7 +180,7 @@ const parsedAttributesLength = (rawAttributes: RawAttribute[]): number =>
 
 const attributedRule: InlineRule = {
   pattern:
-    /(?<!\\)\^\[(.*?[^\\])\]\(((?:\w+: *(?:true|false|\d+(?:\.\d+)?|"(.*?)(?<!\\)"|'(.*?)(?<!\\)'))(?:, *\w+: *(?:true|false|\d+(?:\.\d+)?|"(.*?)(?<!\\)"|'(.*?)(?<!\\)'))*)\)/,
+    /(?<!\\)\^\[(.*?[^\\])\]\(((?:\w+: *(?:true|false|\d+(?:\.\d+)?|"(.*?)(?<!\\)"|'(.*?)(?<!\\)'))(?:, *\w+: *(?:true|false|\d+(?:\.\d+)?|"(.*?)(?<!\\)"|'(.*?)(?<!\\)'))*)\)/u,
   map: ([_res, content = "", attributesText = ""], parseInside) => ({
     kind: "attributed",
     attributes: mapAttributesToObject(parseAttributes(attributesText)),
@@ -209,7 +209,7 @@ const attributedRule: InlineRule = {
 }
 
 const superscriptRule: InlineRule = {
-  pattern: /\^(.*?)\^/,
+  pattern: /\^(.*?)\^/u,
   map: (result, parseInside) => ({
     kind: "superscript",
     content: parseInside(result[1] ?? ""),
@@ -221,7 +221,7 @@ const superscriptRule: InlineRule = {
 }
 
 const footnoteRefRule: InlineRule = {
-  pattern: /(?<!\\)\[\^([a-zA-Z0-9*]+?)\]/,
+  pattern: /(?<!\\)\[\^([a-zA-Z0-9]+?)\]/u,
   map: ([_match, label = ""]) => ({
     kind: "footnoteRef",
     label,
@@ -232,7 +232,7 @@ const footnoteRefRule: InlineRule = {
   }),
 }
 
-const parseEscapedCharacters = (text: string) => text.replace(/\\([*_`[\]()\\])/g, "$1")
+const parseEscapedCharacters = (text: string) => text.replace(/\\([*_`{}[\]()\\#+-.!])/g, "$1")
 
 const textRule: InlineRule = {
   pattern: /.+/s,
@@ -254,7 +254,7 @@ export const inlineRules: InlineRule[] = [
   italicWithBoldRule,
   boldRule,
   italicRule,
-  superscriptRule,
   footnoteRefRule,
+  superscriptRule,
   textRule,
 ]

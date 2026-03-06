@@ -27,6 +27,8 @@ A rule it enforces is that there has to be at least a single blank line between 
 - Containers (`:::` with a name)
 - Definition lists
 
+A level of indentation consists of two spaces for blocks that need indentation.
+
 ## Implementation
 
 The parser is implemented using a combination of parser combinators and a state monad implementation.

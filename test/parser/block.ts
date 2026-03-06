@@ -1,6 +1,11 @@
 import { deepEqual } from "assert/strict"
 import { describe, it } from "node:test"
-import { parseBlockMarkdown, type BlockMarkdownNode } from "../../src/parser/block.ts"
+import type { BlockMarkdownSyntaxNode } from "../../src/parser/block.ts"
+import {
+  parseBlockMarkdown,
+  parseBlockMarkdownForSyntaxHighlighting,
+  type BlockMarkdownNode,
+} from "../../src/parser/block.ts"
 
 describe("parseBlockMarkdown", () => {
   describe("paragraphs", () => {
@@ -531,13 +536,14 @@ This is another paragraph.
               { type: "text", content: "This is a paragraph with a footnote." },
               {
                 type: "footnoteRef",
-                label: "1",
+                label: 1,
+                content: "1",
               },
             ],
           },
           {
             type: "footnote",
-            label: "1",
+            label: 1,
             content: [
               {
                 type: "paragraph",
@@ -571,13 +577,14 @@ This is not part of the footnote anymore.`,
               { type: "text", content: "This is a paragraph with a footnote." },
               {
                 type: "footnoteRef",
-                label: "1",
+                label: 1,
+                content: "1",
               },
             ],
           },
           {
             type: "footnote",
-            label: "1",
+            label: 1,
             content: [
               {
                 type: "paragraph",
@@ -1071,5 +1078,139 @@ Term 9 with **bold**
         ],
       )
     })
+  })
+})
+
+describe("parseBlockMarkdownForSyntaxHighlighting", () => {
+  it("marks syntax elements while preserving the original text content", () => {
+    deepEqual<BlockMarkdownSyntaxNode[]>(
+      parseBlockMarkdownForSyntaxHighlighting(`\n\n\n# Title
+
+First paragraph with **bold** and *italic* text.
+
+Second paraph with a [link](https://example.com) and a
+footnote [^1].
+
+[^1]: This is the footnote content.
+
+  And this is more footnote content with a list:
+
+  - Item 1
+  - Item 2
+
+This is a normal list:
+
+- Item 1
+  - Subitem 1.1
+  - Subitem 1.2
+- Item 2
+  - Subitem 2.1
+    - Subsubitem 2.1.1
+    - Subsubitem 2.1.2
+  - Subitem 2.2
+- Item 3
+
+This is an ordered list:
+
+1. Item 1
+2. Item 2
+3. Item 3
+
+This is a table:
+
+| Header 1 | Header 2 |
+|----------|----------|
+| Cell 1   | Cell 2   |
+| Cell 3   | Cell 4   |
+
+This is a container:
+
+::: name
+
+This is a special section.
+
+:::
+
+`),
+      [
+        { type: "text", content: "\n\n\n" },
+        { type: "syntax", blockType: "heading", content: "#" },
+        { type: "text", content: " Title\n\nFirst paragraph with " },
+        { type: "bold", content: [{ type: "text", content: "**bold**" }] },
+        { type: "text", content: " and " },
+        { type: "italic", content: [{ type: "text", content: "*italic*" }] },
+        { type: "text", content: " text.\n\nSecond paraph with a " },
+        {
+          type: "link",
+          href: "https://example.com",
+          content: [{ type: "text", content: "[link](https://example.com)" }],
+        },
+        { type: "text", content: " and a\nfootnote " },
+        {
+          type: "footnoteRef",
+          label: 1,
+          content: "[^1]",
+        },
+        { type: "text", content: ".\n\n" },
+        { type: "syntax", blockType: "footnote", content: "[^1]:" },
+        {
+          type: "text",
+          content:
+            " This is the footnote content.\n\n  And this is more footnote content with a list:\n\n  ",
+        },
+        { type: "syntax", blockType: "unorderedList", content: "-" },
+        { type: "text", content: " Item 1\n  " },
+        { type: "syntax", blockType: "unorderedList", content: "-" },
+        { type: "text", content: " Item 2\n\nThis is a normal list:\n\n" },
+        { type: "syntax", blockType: "unorderedList", content: "-" },
+        { type: "text", content: " Item 1\n  " },
+        { type: "syntax", blockType: "unorderedList", content: "-" },
+        { type: "text", content: " Subitem 1.1\n  " },
+        { type: "syntax", blockType: "unorderedList", content: "-" },
+        { type: "text", content: " Subitem 1.2\n" },
+        { type: "syntax", blockType: "unorderedList", content: "-" },
+        { type: "text", content: " Item 2\n  " },
+        { type: "syntax", blockType: "unorderedList", content: "-" },
+        { type: "text", content: " Subitem 2.1\n    " },
+        { type: "syntax", blockType: "unorderedList", content: "-" },
+        { type: "text", content: " Subsubitem 2.1.1\n    " },
+        { type: "syntax", blockType: "unorderedList", content: "-" },
+        { type: "text", content: " Subsubitem 2.1.2\n  " },
+        { type: "syntax", blockType: "unorderedList", content: "-" },
+        { type: "text", content: " Subitem 2.2\n" },
+        { type: "syntax", blockType: "unorderedList", content: "-" },
+        { type: "text", content: " Item 3\n\nThis is an ordered list:\n\n" },
+        { type: "syntax", blockType: "orderedList", content: "1." },
+        { type: "text", content: " Item 1\n" },
+        { type: "syntax", blockType: "orderedList", content: "2." },
+        { type: "text", content: " Item 2\n" },
+        { type: "syntax", blockType: "orderedList", content: "3." },
+        { type: "text", content: " Item 3\n\nThis is a table:\n\n" },
+        { type: "syntax", blockType: "table", content: "|" },
+        { type: "text", content: " Header 1 " },
+        { type: "syntax", blockType: "table", content: "|" },
+        { type: "text", content: " Header 2 " },
+        { type: "syntax", blockType: "table", content: "|" },
+        { type: "text", content: "\n" },
+        { type: "syntax", blockType: "table", content: "|----------|----------|" },
+        { type: "text", content: "\n" },
+        { type: "syntax", blockType: "table", content: "|" },
+        { type: "text", content: " Cell 1   " },
+        { type: "syntax", blockType: "table", content: "|" },
+        { type: "text", content: " Cell 2   " },
+        { type: "syntax", blockType: "table", content: "|" },
+        { type: "text", content: "\n" },
+        { type: "syntax", blockType: "table", content: "|" },
+        { type: "text", content: " Cell 3   " },
+        { type: "syntax", blockType: "table", content: "|" },
+        { type: "text", content: " Cell 4   " },
+        { type: "syntax", blockType: "table", content: "|" },
+        { type: "text", content: "\n\nThis is a container:\n\n" },
+        { type: "syntax", blockType: "container", content: "::: name" },
+        { type: "text", content: "\n\nThis is a special section.\n\n" },
+        { type: "syntax", blockType: "container", content: ":::" },
+        { type: "text", content: "\n\n" },
+      ],
+    )
   })
 })

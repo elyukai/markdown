@@ -1,6 +1,10 @@
 import { deepEqual } from "assert/strict"
 import { describe, it } from "node:test"
-import { parseInlineMarkdown, type InlineMarkdownNode } from "../../src/parser/inline.ts"
+import {
+  parseInlineMarkdown,
+  parseInlineMarkdownForSyntaxHighlighting,
+  type InlineMarkdownNode,
+} from "../../src/parser/inline.ts"
 
 describe("parseInlineMarkdown", () => {
   it("parses Markdown", () => {
@@ -8,13 +12,13 @@ describe("parseInlineMarkdown", () => {
       parseInlineMarkdown("This is `code` and **bold** and **`boldcode`**test"),
       [
         { type: "text", content: "This is " },
-        { type: "code", content: { type: "text", content: "code" } },
+        { type: "code", content: "code" },
         { type: "text", content: " and " },
         { type: "bold", content: [{ type: "text", content: "bold" }] },
         { type: "text", content: " and " },
         {
           type: "bold",
-          content: [{ type: "code", content: { type: "text", content: "boldcode" } }],
+          content: [{ type: "code", content: "boldcode" }],
         },
         { type: "text", content: "test" },
       ],
@@ -25,7 +29,7 @@ describe("parseInlineMarkdown", () => {
     it("parses code Markdown formatting", () => {
       deepEqual<InlineMarkdownNode[]>(parseInlineMarkdown("This is `code`."), [
         { type: "text", content: "This is " },
-        { type: "code", content: { type: "text", content: "code" } },
+        { type: "code", content: "code" },
         { type: "text", content: "." },
       ])
     })
@@ -35,9 +39,9 @@ describe("parseInlineMarkdown", () => {
         parseInlineMarkdown("This is `code` and this is also `code`."),
         [
           { type: "text", content: "This is " },
-          { type: "code", content: { type: "text", content: "code" } },
+          { type: "code", content: "code" },
           { type: "text", content: " and this is also " },
-          { type: "code", content: { type: "text", content: "code" } },
+          { type: "code", content: "code" },
           { type: "text", content: "." },
         ],
       )
@@ -48,10 +52,18 @@ describe("parseInlineMarkdown", () => {
         parseInlineMarkdown("This is not \\`code\\`. This is `code with a \\` inside`."),
         [
           { type: "text", content: "This is not `code`. This is " },
-          { type: "code", content: { type: "text", content: "code with a ` inside" } },
+          { type: "code", content: "code with a ` inside" },
           { type: "text", content: "." },
         ],
       )
+    })
+
+    it("keeps formatting when option set", () => {
+      deepEqual<InlineMarkdownNode[]>(parseInlineMarkdownForSyntaxHighlighting("This is `code`."), [
+        { type: "text", content: "This is " },
+        { type: "code", content: "`code`" },
+        { type: "text", content: "." },
+      ])
     })
   })
 
@@ -90,17 +102,28 @@ describe("parseInlineMarkdown", () => {
         ],
       )
     })
+
+    it("keeps formatting when option set", () => {
+      deepEqual<InlineMarkdownNode[]>(
+        parseInlineMarkdownForSyntaxHighlighting("This is **bold**."),
+        [
+          { type: "text", content: "This is " },
+          { type: "bold", content: [{ type: "text", content: "**bold**" }] },
+          { type: "text", content: "." },
+        ],
+      )
+    })
   })
 
   describe("italic", () => {
-    it("parses italic Markdown formatting ", () => {
+    it("parses italic Markdown formatting", () => {
       deepEqual<InlineMarkdownNode[]>(parseInlineMarkdown("This is *italic*"), [
         { type: "text", content: "This is " },
         { type: "italic", content: [{ type: "text", content: "italic" }] },
       ])
     })
 
-    it("parses multiple italic Markdown formatting ", () => {
+    it("parses multiple italic Markdown formatting", () => {
       deepEqual<InlineMarkdownNode[]>(
         parseInlineMarkdown("This is *italic* and this is also *italic*."),
         [
@@ -119,6 +142,17 @@ describe("parseInlineMarkdown", () => {
         [
           { type: "text", content: "This is not *italic*. This is " },
           { type: "italic", content: [{ type: "text", content: "italic with * inside" }] },
+          { type: "text", content: "." },
+        ],
+      )
+    })
+
+    it("keeps formatting when option set", () => {
+      deepEqual<InlineMarkdownNode[]>(
+        parseInlineMarkdownForSyntaxHighlighting("This is *italic*."),
+        [
+          { type: "text", content: "This is " },
+          { type: "italic", content: [{ type: "text", content: "*italic*" }] },
           { type: "text", content: "." },
         ],
       )
@@ -309,6 +343,21 @@ describe("parseInlineMarkdown", () => {
         ],
       )
     })
+
+    it("keeps formatting when option set", () => {
+      deepEqual<InlineMarkdownNode[]>(
+        parseInlineMarkdownForSyntaxHighlighting("This is a [link](https://example.com)."),
+        [
+          { type: "text", content: "This is a " },
+          {
+            type: "link",
+            href: "https://example.com",
+            content: [{ type: "text", content: "[link](https://example.com)" }],
+          },
+          { type: "text", content: "." },
+        ],
+      )
+    })
   })
 
   describe("attributed string", () => {
@@ -328,13 +377,35 @@ describe("parseInlineMarkdown", () => {
         ],
       )
     })
+
+    it("keeps formatting when option set", () => {
+      deepEqual<InlineMarkdownNode[]>(
+        parseInlineMarkdownForSyntaxHighlighting(
+          'This is an ^[attributed string](color: "red", size: 12, important: true).',
+        ),
+        [
+          { type: "text", content: "This is an " },
+          {
+            type: "attributed",
+            attributes: { color: "red", size: 12, important: true },
+            content: [
+              {
+                type: "text",
+                content: '^[attributed string](color: "red", size: 12, important: true)',
+              },
+            ],
+          },
+          { type: "text", content: "." },
+        ],
+      )
+    })
   })
 
   describe("footnote reference", () => {
     it("parses a footnote reference", () => {
       deepEqual<InlineMarkdownNode[]>(parseInlineMarkdown("This is a footnote reference: [^1]."), [
         { type: "text", content: "This is a footnote reference: " },
-        { type: "footnoteRef", label: "1" },
+        { type: "footnoteRef", label: 1, content: "1" },
         { type: "text", content: "." },
       ])
     })
@@ -344,11 +415,22 @@ describe("parseInlineMarkdown", () => {
         parseInlineMarkdown("Footnote references: [^1], [^2], and [^3]."),
         [
           { type: "text", content: "Footnote references: " },
-          { type: "footnoteRef", label: "1" },
+          { type: "footnoteRef", label: 1, content: "1" },
           { type: "text", content: ", " },
-          { type: "footnoteRef", label: "2" },
+          { type: "footnoteRef", label: 2, content: "2" },
           { type: "text", content: ", and " },
-          { type: "footnoteRef", label: "3" },
+          { type: "footnoteRef", label: 3, content: "3" },
+          { type: "text", content: "." },
+        ],
+      )
+    })
+
+    it("keeps formatting when option set", () => {
+      deepEqual<InlineMarkdownNode[]>(
+        parseInlineMarkdownForSyntaxHighlighting("This is a footnote reference: [^1]."),
+        [
+          { type: "text", content: "This is a footnote reference: " },
+          { type: "footnoteRef", label: 1, content: "[^1]" },
           { type: "text", content: "." },
         ],
       )
@@ -388,6 +470,17 @@ describe("parseInlineMarkdown", () => {
               "This is not a superscript: x^2^. This is a superscript with an escaped caret inside: x",
           },
           { type: "superscript", content: [{ type: "text", content: "2^3" }] },
+          { type: "text", content: "." },
+        ],
+      )
+    })
+
+    it("keeps formatting when option set", () => {
+      deepEqual<InlineMarkdownNode[]>(
+        parseInlineMarkdownForSyntaxHighlighting("This is ^superscript^."),
+        [
+          { type: "text", content: "This is " },
+          { type: "superscript", content: [{ type: "text", content: "^superscript^" }] },
           { type: "text", content: "." },
         ],
       )
@@ -448,7 +541,7 @@ describe("parseInlineMarkdown", () => {
         ),
         [
           { type: "text", content: "Im Kampf gegen Drachen" },
-          { type: "footnoteRef", label: "1" },
+          { type: "footnoteRef", label: 1, content: "1" },
           { type: "text", content: " kann er 1 Aktion" },
           { type: "superscript", content: [{ type: "text", content: "2" }] },
           { type: "text", content: " für eine Probe auf " },
