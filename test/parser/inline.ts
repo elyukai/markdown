@@ -25,6 +25,13 @@ describe("parseInlineMarkdown", () => {
     )
   })
 
+  it("keeps escaped characters when syntax highlighting option enabled", () => {
+    deepEqual<InlineMarkdownNode[]>(
+      parseInlineMarkdownForSyntaxHighlighting("This is not \\`code\\` and not \\*\\*bold\\*\\*."),
+      [{ type: "text", content: "This is not \\`code\\` and not \\*\\*bold\\*\\*." }],
+    )
+  })
+
   describe("code", () => {
     it("parses code Markdown formatting", () => {
       deepEqual<InlineMarkdownNode[]>(parseInlineMarkdown("This is `code`."), [

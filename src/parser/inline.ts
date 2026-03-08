@@ -130,7 +130,11 @@ const parseEscapedCharacters = (text: string) => text.replace(/\\([*_`{}[\]()\\#
 const asText = (content: string): Text => ({ type: "text", content })
 
 const text = (syntaxStartCharacters: string[]): StatefulParser<Text> =>
-  anyStopOn(syntaxStartCharacters).map(result => asText(parseEscapedCharacters(result)))
+  anyStopOn(syntaxStartCharacters).then(result =>
+    getSyntaxSetting.map(keepSyntax =>
+      asText(keepSyntax ? result : parseEscapedCharacters(result)),
+    ),
+  )
 
 const codeDelimiter = syntax(SParser.string<S>("`"))
 const codeText = anyStopOn(["`"]).then(result => SParser.of(result.replace(/\\`/g, "`")))
