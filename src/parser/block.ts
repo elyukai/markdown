@@ -31,6 +31,11 @@ const sepBy1KeepFlat = <T>(
       .map(rest => [...first, ...rest.flat()]),
   )
 
+const sepByKeepFlat = <T>(
+  parser: StatefulParser<T[]>,
+  separator: StatefulParser<T[]>,
+): StatefulParser<T[]> => sepBy1KeepFlat(parser, separator).orFirst(SParser.of([]))
+
 export type Break = { type: "break" }
 
 export type ParagraphContent = InlineMarkdownNode | Break
@@ -56,7 +61,11 @@ export type ListItem = {
 
 export type Table = {
   type: "table"
-  caption?: InlineMarkdownNode[]
+
+  /**
+   * A caption may span multiple lines.
+   */
+  caption?: InlineMarkdownNode[][]
   columns: TableColumnStyle[]
   header: TableCell[]
   rows: TableRow[] | TableSection[]
@@ -466,10 +475,10 @@ const tableCaptionRow = SParser.string<S>("|#")
       .then(() => newlineT)
       .map(() => caption),
   )
-  .optional()
+  .separatedBy(indentation)
 
-const tableCaptionRowSyntax = SParser.string<S>("|#")
-  .then(startDelim =>
+const tableCaptionRowSyntax = sepByKeepFlat(
+  SParser.string<S>("|#").then(startDelim =>
     anySpacesT.then(leadingSpace =>
       inlineNodes.then(caption =>
         anySpacesT.then(trailingSpace =>
@@ -488,8 +497,9 @@ const tableCaptionRowSyntax = SParser.string<S>("|#")
         ),
       ),
     ),
-  )
-  .optional()
+  ),
+  indentation,
+)
 
 const tableHeaderRow = tableRow(
   tableContentCellGuard.then(() => inlineNodes),
@@ -640,7 +650,10 @@ const table: StatefulParser<Table> = tableCaptionRow.then(caption =>
               (rows): Table =>
                 omitUndefinedKeys({
                   type: "table",
-                  caption: caption === undefined ? undefined : trimLastNodeEnd(caption),
+                  caption:
+                    caption.length === 0
+                      ? undefined
+                      : caption.map(captionRow => trimLastNodeEnd(captionRow)),
                   columns: separators.map(
                     (cell): TableColumnStyle =>
                       omitUndefinedKeys({ alignment: getAlignmentFromSeparator(cell) }),
@@ -663,7 +676,7 @@ const tableSyntax: StatefulParser<InternalBlockMarkdownSyntaxNode[]> = tableCapt
             tableSeparatorRowSyntax.then(separators =>
               newlineT.then(separatorsNewline =>
                 sepBy1KeepFlat(tableBodyRowSyntax, newlineT.map(asSingleText)).map(rows => [
-                  ...(caption === undefined ? [] : caption),
+                  ...caption.flat(),
                   ...indentBetweenCaptionAndHeader,
                   ...header,
                   asText(headerNewline),

@@ -1,3 +1,4 @@
+import { intercalate } from "@elyukai/utils/array/transformations"
 import { isNotNullish } from "@elyukai/utils/nullable"
 import { assertExhaustive } from "@elyukai/utils/typeSafety"
 import { parseBlockMarkdown, parseInlineMarkdown } from "../../index.ts"
@@ -142,7 +143,12 @@ export const renderBlockMarkdownNode = (
           ...(node.caption === undefined
             ? []
             : [
-                `<caption>${node.caption.map(content => renderInlineMarkdownNode(env, content)).join("")}</caption>`,
+                `<caption>${intercalate(
+                  node.caption.map(captionLine =>
+                    captionLine.map(content => renderInlineMarkdownNode(env, content)),
+                  ),
+                  ["<br>"],
+                ).join("")}</caption>`,
               ]),
           "<thead>",
           ...indent(env, renderTableRow(env, node.columns, node.header, "th")),

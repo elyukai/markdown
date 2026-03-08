@@ -332,7 +332,7 @@ This was a table.
           },
           {
             type: "table",
-            caption: [{ type: "text", content: "Table Caption" }],
+            caption: [[{ type: "text", content: "Table Caption" }]],
             columns: [{}, {}],
             header: [
               { type: "tableCell", content: [{ type: "text", content: "Header 1" }] },
