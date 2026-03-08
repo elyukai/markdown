@@ -553,11 +553,16 @@ const tableNormalRowSyntax = tableRowSyntax(
     ),
   ),
 )
-const tableSectionWithSubheaderSeparatorRow = tableRow(tableSectionWithSubheaderSeparatorCell)
+const tableSectionWithSubheaderSeparatorRow = tableRow(
+  tableSectionWithSubheaderSeparatorCell.htoken(),
+)
 const tableSectionWithSubheaderSeparatorRowSyntax = tableRowSyntax(
-  tableSectionWithSubheaderSeparatorCell.map(separator => [
-    { type: "syntax", blockType: "table", content: separator },
-  ]),
+  tableSectionWithSubheaderSeparatorCell.then(separator =>
+    anySpacesT.map(trailingSpaces => [
+      { type: "syntax", blockType: "table", content: separator },
+      ...(trailingSpaces.length > 0 ? [asText(trailingSpaces)] : []),
+    ]),
+  ),
 )
 const tableSectionSubheaderWithSeparatorRow = tableSectionWithSubheaderSeparatorRow
   .then(() => newlineT)
@@ -576,13 +581,16 @@ const tableSectionSubheaderWithSeparatorRowSyntax =
       ]),
     ),
   )
-const tableSectionPlainSeparatorRow = tableRow(tableSectionSeparatorCell).map(() => ({
+const tableSectionPlainSeparatorRow = tableRow(tableSectionSeparatorCell.htoken()).map(() => ({
   type: "newSection" as const,
 }))
 const tableSectionPlainSeparatorRowSyntax = tableRowSyntax(
-  tableSectionSeparatorCell.map(separator => [
-    { type: "syntax", blockType: "table", content: separator },
-  ]),
+  tableSectionSeparatorCell.then(separator =>
+    anySpacesT.map(trailingSpaces => [
+      { type: "syntax", blockType: "table", content: separator },
+      ...(trailingSpaces.length > 0 ? [asText(trailingSpaces)] : []),
+    ]),
+  ),
 )
 const tableBodyRow = tableSectionSubheaderWithSeparatorRow
   .orFirstW(tableSectionPlainSeparatorRow)
