@@ -244,7 +244,7 @@ const orderedListItemStartDelimiter = SParser.regex<S>(/^\d+\./)
 const listItemContent = oneOrMoreSpacesT
   .then(() => inlineNodes)
   .then(inlineLabel =>
-    withIndentation(singleLineBreakAndIndentation.then(() => blockMarkdown))
+    withIndentation(anyBlankLines.then(() => indentation.then(() => blockMarkdown)))
       .optional()
       .map((content = []): ListItem => ({ type: "listItem", inlineLabel, content })),
   )
@@ -252,9 +252,11 @@ const listItemContentSyntax: StatefulParser<InternalBlockMarkdownSyntaxNode[]> =
   oneOrMoreSpacesT.then(space =>
     inlineNodes.then(inlineLabel =>
       withIndentation(
-        singleLineBreakAndIndentation.then(nextLineSpacing =>
-          blockMarkdownSyntax.map(content => [...nextLineSpacing, ...content]),
-        ),
+        anyBlankLines
+          .then((lines: Text[]) => indentation.map(indent => lines.concat(indent)))
+          .then(nextLineSpacing =>
+            blockMarkdownSyntax.map(content => [...nextLineSpacing, ...content]),
+          ),
       )
         .optional()
         .map((content = []): InternalBlockMarkdownSyntaxNode[] => [
@@ -349,12 +351,9 @@ const container: StatefulParser<Container> = containerDelimiter
   .then(() => containerName)
   .then(name =>
     blankLines
-      .then(() => indentation.then(() => blockMarkdown))
+      .then(() => blockMarkdown)
       .then(content =>
-        blankLines
-          .then(() => indentation)
-          .then(() => containerDelimiter)
-          .map(() => ({ type: "container", name, content })),
+        blankLines.then(() => containerDelimiter).map(() => ({ type: "container", name, content })),
       ),
   )
 
@@ -420,15 +419,20 @@ const getAlignmentFromSeparator = (separator: string): TableColumnStyle["alignme
 }
 const tableSeparator = SParser.string<S>("|")
 const tableContentCellGuard = SParser.lookahead(SParser.regex<S>(/^ *\S+/u))
-const tableRow = <T>(parser: StatefulParser<T>): StatefulParser<T[]> =>
-  tableSeparator
-    .htoken()
+const tableRow = <T>(parser: StatefulParser<T>, withIndentation = true): StatefulParser<T[]> =>
+  (withIndentation ? indentation.then(() => tableSeparator.htoken()) : tableSeparator.htoken())
     .then(() => parser.separatedBy1(tableSeparator.htoken()))
     .then(header => tableSeparator.map(() => header))
 const tableRowSyntax = (
   parser: StatefulParser<InternalBlockMarkdownSyntaxNode[]>,
+  withIndentation = true,
 ): StatefulParser<InternalBlockMarkdownSyntaxNode[]> =>
-  tableSeparator.then(startDelim =>
+  (withIndentation
+    ? indentation.then(indent => tableSeparator.map(startDelim => ({ indent, startDelim })))
+    : tableSeparator.map((startDelim): { startDelim: string; indent?: undefined } => ({
+        startDelim,
+      }))
+  ).then(startDelim =>
     anySpacesT.then(startSpace =>
       sepBy1KeepFlat(
         parser,
@@ -443,7 +447,8 @@ const tableRowSyntax = (
         ),
       ).then(content =>
         tableSeparator.map((endDelim): InternalBlockMarkdownSyntaxNode[] => [
-          { type: "syntax", blockType: "table", content: startDelim },
+          ...(startDelim.indent ?? []),
+          { type: "syntax", blockType: "table", content: startDelim.startDelim },
           asText(startSpace),
           ...content,
           { type: "syntax", blockType: "table", content: endDelim },
@@ -486,8 +491,14 @@ const tableCaptionRowSyntax = SParser.string<S>("|#")
   )
   .optional()
 
-const tableHeaderRow = tableRow(tableContentCellGuard.then(() => inlineNodes))
-const tableHeaderRowSyntax = tableRowSyntax(tableContentCellGuard.then(() => inlineNodes))
+const tableHeaderRow = tableRow(
+  tableContentCellGuard.then(() => inlineNodes),
+  false,
+)
+const tableHeaderRowSyntax = tableRowSyntax(
+  tableContentCellGuard.then(() => inlineNodes),
+  false,
+)
 const tableSeparatorRow = tableRow(tableHeaderSeparatorCell.htoken())
 const tableSeparatorRowSyntax = tableRowSyntax(
   tableHeaderSeparatorCell.then(separator =>
@@ -618,46 +629,52 @@ const sectionRows = (
 }
 
 const table: StatefulParser<Table> = tableCaptionRow.then(caption =>
-  tableHeaderRow.then(header =>
-    newlineT
-      .then(() => tableSeparatorRow)
-      .then(separators =>
-        newlineT
-          .then(() => tableBodyRow.separatedBy1(newlineT))
-          .map(
-            (rows): Table =>
-              omitUndefinedKeys({
-                type: "table",
-                caption: caption === undefined ? undefined : trimLastNodeEnd(caption),
-                columns: separators.map(
-                  (cell): TableColumnStyle =>
-                    omitUndefinedKeys({ alignment: getAlignmentFromSeparator(cell) }),
-                ),
-                header: header.map(mapCell),
-                rows: sectionRows(rows),
-              }),
-          ),
-      ),
+  (caption.length === 0 ? SParser.of<S, []>([]) : indentation).then(() =>
+    tableHeaderRow.then(header =>
+      newlineT
+        .then(() => tableSeparatorRow)
+        .then(separators =>
+          newlineT
+            .then(() => tableBodyRow.separatedBy1(newlineT))
+            .map(
+              (rows): Table =>
+                omitUndefinedKeys({
+                  type: "table",
+                  caption: caption === undefined ? undefined : trimLastNodeEnd(caption),
+                  columns: separators.map(
+                    (cell): TableColumnStyle =>
+                      omitUndefinedKeys({ alignment: getAlignmentFromSeparator(cell) }),
+                  ),
+                  header: header.map(mapCell),
+                  rows: sectionRows(rows),
+                }),
+            ),
+        ),
+    ),
   ),
 )
 
 const tableSyntax: StatefulParser<InternalBlockMarkdownSyntaxNode[]> = tableCaptionRowSyntax.then(
   caption =>
-    tableHeaderRowSyntax.then(header =>
-      newlineT.then(headerNewline =>
-        tableSeparatorRowSyntax.then(separators =>
-          newlineT.then(separatorsNewline =>
-            sepBy1KeepFlat(tableBodyRowSyntax, newlineT.map(asSingleText)).map(rows => [
-              ...(caption === undefined ? [] : caption),
-              ...header,
-              asText(headerNewline),
-              ...separators,
-              asText(separatorsNewline),
-              ...rows,
-            ]),
+    (caption.length === 0 ? SParser.of<S, []>([]) : indentation).then(
+      indentBetweenCaptionAndHeader =>
+        tableHeaderRowSyntax.then(header =>
+          newlineT.then(headerNewline =>
+            tableSeparatorRowSyntax.then(separators =>
+              newlineT.then(separatorsNewline =>
+                sepBy1KeepFlat(tableBodyRowSyntax, newlineT.map(asSingleText)).map(rows => [
+                  ...(caption === undefined ? [] : caption),
+                  ...indentBetweenCaptionAndHeader,
+                  ...header,
+                  asText(headerNewline),
+                  ...separators,
+                  asText(separatorsNewline),
+                  ...rows,
+                ]),
+              ),
+            ),
           ),
         ),
-      ),
     ),
 )
 
