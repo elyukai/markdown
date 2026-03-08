@@ -7,7 +7,13 @@ import { assertExhaustive } from "@elyukai/utils/typeSafety"
 import { reduceSyntaxNodes } from "../reduce.ts"
 import { getSyntaxSetting, syntax, type S, type StatefulParser } from "./state.ts"
 
-const defaultInlineSyntaxStartCharacters = ["*", "`", "[", "_", "{", "}", "|", "!", "^"]
+const defaultInlineSyntaxStartSequences = ["*", "`", "[", "_", "{", "}", "|", "![", "#|", "^", "\n"]
+
+const matchesSyntaxStartSequences = (
+  syntaxStartSequences: string[],
+  text: string,
+  position: number,
+): boolean => syntaxStartSequences.some(seq => text.startsWith(seq, position))
 
 export type Text = {
   type: "text"
@@ -101,14 +107,7 @@ const anyStopOn = (
         if (syntax[i] === "\\" && i + 1 < syntax.length && syntax[i + 1] !== "\n") {
           // skip next character because it's escaped
           i++
-        } else if (
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          (syntax[i] !== "!" && charactersToStopOnIfNotEscaped.includes(syntax[i]!)) ||
-          syntax[i] === "\n" ||
-          (syntax[i] === "!" &&
-            charactersToStopOnIfNotEscaped.includes("!") &&
-            syntax[i + 1] === "[")
-        ) {
+        } else if (matchesSyntaxStartSequences(charactersToStopOnIfNotEscaped, syntax, i)) {
           // const trimmed = syntax.slice(0, i).trimEnd()
           // if (i === 0 || (trimmed.length === 0 && nonEmpty)) {
           //   return []
@@ -326,8 +325,8 @@ const recursiveParsers: NonEmptyArray<RecursiveParser<RecursiveContent>> = [
 ]
 
 export const inlineNode = combineParsers([
-  ...mapRecursiveParsers(recursiveParsers, defaultInlineSyntaxStartCharacters),
-  leafParser(defaultInlineSyntaxStartCharacters),
+  ...mapRecursiveParsers(recursiveParsers, defaultInlineSyntaxStartSequences),
+  leafParser(defaultInlineSyntaxStartSequences),
 ] satisfies StatefulParser<InlineMarkdownNode>[] as NonEmptyArray<
   StatefulParser<InlineMarkdownNode>
 >)
