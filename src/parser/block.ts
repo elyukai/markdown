@@ -353,7 +353,7 @@ const definitionListSyntax = sepBy1KeepFlat<InternalBlockMarkdownSyntaxNode>(
 )
 
 const containerDelimiter = SParser.string<S>(":::")
-const containerName = SParser.regex<S>(/^\w+/)
+const containerName = SParser.regex<S>(/^\w+(?:[-_]\w+)*/)
 
 const container: StatefulParser<Container> = containerDelimiter
   .then(() => oneOrMoreSpacesT)
