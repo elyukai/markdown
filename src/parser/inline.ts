@@ -7,7 +7,7 @@ import { assertExhaustive } from "@elyukai/utils/typeSafety"
 import { reduceSyntaxNodes } from "../reduce.ts"
 import { getSyntaxSetting, syntax, type S, type StatefulParser } from "./state.ts"
 
-const defaultInlineSyntaxStartCharacters = ["*", "`", "[", "_", "{", "}", "|", "#", "!", "^"]
+const defaultInlineSyntaxStartCharacters = ["*", "`", "[", "_", "{", "}", "|", "!", "^"]
 
 export type Text = {
   type: "text"
