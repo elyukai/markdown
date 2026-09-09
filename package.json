@@ -27,20 +27,21 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/node": "^25.3.3",
-    "commit-and-tag-version": "^12.6.1",
-    "eslint": "^10.0.2",
-    "globals": "^17.4.0",
-    "prettier": "^3.8.1",
-    "tsx": "^4.21.0",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.56.1"
+    "@types/node": "^26.5.0",
+    "commit-and-tag-version": "^13.2.0",
+    "eslint": "^10.10.0",
+    "globals": "^17.12.0",
+    "prettier": "^3.9.6",
+    "tsx": "^4.23.13",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "typescript-7": "npm:typescript@^7.0.2",
+    "typescript-eslint": "^8.70.0"
   },
   "repository": "github:elyukai/markdown",
   "bugs": {
     "url": "https://github.com/elyukai/markdown/issues"
   },
   "dependencies": {
-    "@elyukai/utils": "^0.3.0"
+    "@elyukai/utils": "^0.3.6"
   }
 }
