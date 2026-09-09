@@ -83,6 +83,7 @@ const mergeSyntaxNodes = <T extends InlineMarkdownNode | Break | Syntax>(lastNod
     return null
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- It does change the type of expression, thus false positive
   const mergeFn = syntaxNodeMergeRules[lastNode.type] as MergeFn<T> | null
   return mergeFn?.(lastNode, node) ?? null
 }
