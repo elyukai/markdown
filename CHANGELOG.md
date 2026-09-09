@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.3.2](https://github.com/elyukai/markdown/compare/v0.3.1...v0.3.2) (2026-09-09)
+
+### Bug Fixes
+
+* export new strip function ([b71db2b](https://github.com/elyukai/markdown/commit/b71db2b9af34facb1a7849ddc950946678216a0a))
 ## [0.3.1](https://github.com/elyukai/markdown/compare/v0.3.0...v0.3.1) (2026-09-09)
 
 ### Features
