@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.3.1](https://github.com/elyukai/markdown/compare/v0.3.0...v0.3.1) (2026-09-09)
+
+### Features
+
+* strip inline markdown syntax ([8ee3c8b](https://github.com/elyukai/markdown/commit/8ee3c8bdf1f5951f101b6f0d10b9ef7b9a4a3fe9))
 ## [0.3.0](https://github.com/elyukai/markdown/compare/v0.2.2...v0.3.0) (2026-09-09)
 
 ### ⚠ BREAKING CHANGES
