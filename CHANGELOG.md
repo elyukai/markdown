@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.3.0](https://github.com/elyukai/markdown/compare/v0.2.2...v0.3.0) (2026-09-09)
+
+### ⚠ BREAKING CHANGES
+
+* use renderer builder for html renderer
+
+* use renderer builder for html renderer ([4c2f423](https://github.com/elyukai/markdown/commit/4c2f423f2b43f39a21bbb36d451ec30e51e62877))
+
+### Features
+
+* renderer builder ([50ba56e](https://github.com/elyukai/markdown/commit/50ba56e531b813f3e753141a263efce15c1946ba))
 ## [0.2.2](https://github.com/elyukai/markdown/compare/v0.2.1...v0.2.2) (2026-03-08)
 
 
