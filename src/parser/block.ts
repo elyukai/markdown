@@ -120,13 +120,7 @@ export type DefinitionListItem = {
 }
 
 export type BlockMarkdownNode =
-  | DefinitionList
-  | Footnote
-  | Container
-  | Table
-  | List
-  | Heading
-  | Paragraph
+  DefinitionList | Footnote | Container | Table | List | Heading | Paragraph
 
 export type Syntax = {
   type: "syntax"
@@ -195,12 +189,10 @@ const paragraph: StatefulParser<Paragraph> = SParser.negativeLookahead(
   SParser.regex<S>(/^:{1,3} +\S+|^:{3}$|^:{3}\s*\n/u),
 )
   .then(() => paragraphContent)
-  .map(
-    (content): Paragraph => ({
-      type: "paragraph",
-      content: content.flat(),
-    }),
-  )
+  .map((content): Paragraph => ({
+    type: "paragraph",
+    content: content.flat(),
+  }))
 
 const paragraphSyntax: StatefulParser<InternalBlockMarkdownSyntaxNode[]> =
   SParser.negativeLookahead(SParser.regex<S>(/^:{1,3} +\S+|^:{3}$|^:{3}\s*\n/u))
@@ -338,9 +330,11 @@ const definitionDescriptionsSyntax = singleLineBreakAndIndentation
 
 const definitionList = definitionTerms
   .then(terms =>
-    definitionDescriptions.map(
-      (descriptions): DefinitionListItem => ({ type: "definitionListItem", terms, descriptions }),
-    ),
+    definitionDescriptions.map((descriptions): DefinitionListItem => ({
+      type: "definitionListItem",
+      terms,
+      descriptions,
+    })),
   )
   .separatedBy1(blankLines)
   .map((content): DefinitionList => ({ type: "definitionList", content }))
@@ -637,12 +631,10 @@ const sectionRows = (
       return acc
     }, [])
   } else {
-    return (rows as { content: InlineMarkdownNode[]; span: number }[][]).map(
-      (row): TableRow => ({
-        type: "tableRow",
-        cells: row.map(mapCellObj),
-      }),
-    )
+    return (rows as { content: InlineMarkdownNode[]; span: number }[][]).map((row): TableRow => ({
+      type: "tableRow",
+      cells: row.map(mapCellObj),
+    }))
   }
 }
 
@@ -654,21 +646,19 @@ const table: StatefulParser<Table> = tableCaptionRow.then(caption =>
         .then(separators =>
           newlineT
             .then(() => tableBodyRow.separatedBy1(newlineT))
-            .map(
-              (rows): Table =>
-                omitUndefinedKeys({
-                  type: "table",
-                  caption:
-                    caption.length === 0
-                      ? undefined
-                      : caption.map(captionRow => trimLastNodeEnd(captionRow)),
-                  columns: separators.map(
-                    (cell): TableColumnStyle =>
-                      omitUndefinedKeys({ alignment: getAlignmentFromSeparator(cell) }),
-                  ),
-                  header: header.map(mapCell),
-                  rows: sectionRows(rows),
-                }),
+            .map((rows): Table =>
+              omitUndefinedKeys({
+                type: "table",
+                caption:
+                  caption.length === 0
+                    ? undefined
+                    : caption.map(captionRow => trimLastNodeEnd(captionRow)),
+                columns: separators.map((cell): TableColumnStyle =>
+                  omitUndefinedKeys({ alignment: getAlignmentFromSeparator(cell) }),
+                ),
+                header: header.map(mapCell),
+                rows: sectionRows(rows),
+              }),
             ),
         ),
     ),

@@ -246,9 +246,10 @@ const attributeValue = SParser.hspace<S>().then(leading =>
     .orFirstW(attributeNumberValue)
     .orFirstW(attributeStringValue)
     .then(([rawValue, value]) =>
-      SParser.hspace<S>().map(
-        (trailing): AttributeValuePair => [leading + rawValue + trailing, value],
-      ),
+      SParser.hspace<S>().map((trailing): AttributeValuePair => [
+        leading + rawValue + trailing,
+        value,
+      ]),
     ),
 )
 const attributeName = SParser.regex<S>(/^ *\w+ */)
