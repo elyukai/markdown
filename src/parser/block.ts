@@ -737,8 +737,14 @@ export const finalBlockMarkdownSyntax: StatefulParser<BlockMarkdownSyntaxNode[]>
       ),
   )
 
-export const parseBlockMarkdown = (syntax: string): BlockMarkdownNode[] => {
-  const results = finalBlockMarkdown.evalT({ indentation: 0, keepSyntax: false }).parse(syntax)
+export const _parseBlockMarkdown = (
+  syntax: string,
+  keepSyntax = false,
+  preserveEscapes = false,
+): BlockMarkdownNode[] => {
+  const results = finalBlockMarkdown
+    .evalT({ indentation: 0, keepSyntax, preserveEscapes })
+    .parse(syntax)
 
   if (!isNotEmpty(results)) {
     throw new Error(`Failed to parse`)
@@ -754,10 +760,15 @@ export const parseBlockMarkdown = (syntax: string): BlockMarkdownNode[] => {
   return result
 }
 
+export const parseBlockMarkdown = (syntax: string): BlockMarkdownNode[] =>
+  _parseBlockMarkdown(syntax)
+
 export const parseBlockMarkdownForSyntaxHighlighting = (
   syntax: string,
 ): BlockMarkdownSyntaxNode[] => {
-  const results = finalBlockMarkdownSyntax.evalT({ indentation: 0, keepSyntax: true }).parse(syntax)
+  const results = finalBlockMarkdownSyntax
+    .evalT({ indentation: 0, keepSyntax: true, preserveEscapes: false })
+    .parse(syntax)
 
   if (!isNotEmpty(results)) {
     throw new Error(`Failed to parse`)

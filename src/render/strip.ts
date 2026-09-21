@@ -21,4 +21,4 @@ const inlineBuilder: InlineBuilderMap<string, []> = {
  * Strips inline markdown syntax from a string, returning only the text content.
  */
 export const stripInlineMarkdown = (markdown: string): string =>
-  renderInlineFromString(markdown, inlineBuilder).join("")
+  renderInlineFromString(markdown, inlineBuilder, { builderArgs: [] }).join("")

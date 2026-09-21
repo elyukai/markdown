@@ -1,6 +1,6 @@
-import { parseBlockMarkdown, type BlockMarkdownNode } from "../parser/block.ts"
+import { _parseBlockMarkdown, type BlockMarkdownNode } from "../parser/block.ts"
 import type { NodeToMap } from "../parser/helper.ts"
-import { parseInlineMarkdown, type InlineMarkdownNode } from "../parser/inline.ts"
+import { _parseInlineMarkdown, type InlineMarkdownNode } from "../parser/inline.ts"
 
 export type ParseInnerNode<Result, Node, Args extends unknown[]> = (
   node: Node,
@@ -86,11 +86,13 @@ export const renderInline = <Result, Args extends unknown[]>(
 export const renderInlineFromString = <Result, Args extends unknown[]>(
   markdown: string,
   builder: InlineBuilderMap<Result, Args>,
-  ...args: Args
+  options: { preserveEscapes?: boolean; builderArgs: Args },
 ): Result[] => {
   const parseInner = (node: InlineMarkdownNode, ...args: Args): Result =>
     getBuilderForNode<InlineMarkdownNode, Result, Args>(builder, node)(node, parseInner, ...args)
-  return parseInlineMarkdown(markdown).map(node => parseInner(node, ...args))
+  return _parseInlineMarkdown(markdown, false, options.preserveEscapes).map(node =>
+    parseInner(node, ...options.builderArgs),
+  )
 }
 
 /**
@@ -135,7 +137,7 @@ export const render = <Result, InlineResult, Args extends unknown[]>(
 export const renderFromString = <Result, InlineResult, Args extends unknown[]>(
   markdown: string,
   builder: BlockBuilderMap<Result, InlineResult, Args> & InlineBuilderMap<InlineResult, Args>,
-  ...args: Args
+  options: { preserveEscapes?: boolean; builderArgs: Args },
 ): Result[] => {
   const parseInnerInline = (node: InlineMarkdownNode, ...args: Args): InlineResult =>
     getBuilderForNode<InlineMarkdownNode, InlineResult, Args>(builder, node)(
@@ -150,5 +152,7 @@ export const renderFromString = <Result, InlineResult, Args extends unknown[]>(
       node,
     )(node, parseInner, parseInnerInline, ...args)
 
-  return parseBlockMarkdown(markdown).map(node => parseInner(node, ...args))
+  return _parseBlockMarkdown(markdown, false, options.preserveEscapes).map(node =>
+    parseInner(node, ...options.builderArgs),
+  )
 }

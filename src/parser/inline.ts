@@ -130,7 +130,7 @@ const asText = (content: string): Text => ({ type: "text", content })
 
 const text = (syntaxStartCharacters: string[]): StatefulParser<Text> =>
   anyStopOn(syntaxStartCharacters).then(result =>
-    getSyntaxSetting.map(keepSyntax =>
+    SParser.getsT((state: S) => state.keepSyntax || state.preserveEscapes).map(keepSyntax =>
       asText(keepSyntax ? result : parseEscapedCharacters(result)),
     ),
   )
@@ -334,8 +334,14 @@ export const inlineNode = combineParsers([
 
 export const inlineMarkdown: StatefulParser<InlineMarkdownNode[]> = inlineNode.many()
 
-const _parseInlineMarkdown = (syntax: string, keepSyntax = false): InlineMarkdownNode[] => {
-  const results = inlineMarkdown.evalT({ indentation: 0, keepSyntax }).parse(syntax)
+export const _parseInlineMarkdown = (
+  syntax: string,
+  keepSyntax = false,
+  preserveEscapes = false,
+): InlineMarkdownNode[] => {
+  const results = inlineMarkdown
+    .evalT({ indentation: 0, keepSyntax, preserveEscapes })
+    .parse(syntax)
 
   if (!isNotEmpty(results)) {
     throw new Error(`Failed to parse`)

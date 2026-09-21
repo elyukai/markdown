@@ -60,7 +60,7 @@ export const renderInlineMarkdownAsHTML = <E extends Env>(
       ...(inlineBuilderMap as unknown as InlineBuilderMap<string, [env: E]>),
       ...builderMapAdjustments,
     },
-    env as E,
+    { builderArgs: [env as E] },
   ).join("")
 }
 
@@ -245,7 +245,7 @@ export const renderBlockMarkdownAsHTML = <E extends Env>(
       ...(builderMap as unknown as BlockHTMLBuilderMap<E> & InlineHTMLBuilderMap<E>),
       ...builderMapAdjustments,
     },
-    env as E,
+    { builderArgs: [env as E] },
   )
     .flat()
     .join(env.indentation ? "\n" : "")

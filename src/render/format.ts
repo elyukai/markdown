@@ -62,9 +62,14 @@ const inlineBuilderMap: InlineBuilderMap<string, [options: FormatterOptions, env
  * Format inline markdown syntax from a string, returning only the text content.
  */
 export const formatInline = (markdown: string): string =>
-  renderInlineFromString(markdown.trim(), inlineBuilderMap, defaultOptions, defaultBlockEnv).join(
-    "",
-  )
+  renderInlineFromString<string, [options: FormatterOptions, env: BlockEnv]>(
+    markdown.trim(),
+    inlineBuilderMap,
+    {
+      preserveEscapes: true,
+      builderArgs: [defaultOptions, defaultBlockEnv],
+    },
+  ).join("")
 
 /**
  * Prints inline markdown nodes as a string.
@@ -307,9 +312,10 @@ ${node.content.map(content => formatInner(content, options, env)).join("\n\n")}
 const builderMap = { ...blockBuilderMap, ...inlineBuilderMap }
 
 export const format = (markdown: string, options?: Partial<FormatterOptions>): string =>
-  renderFromString(markdown, builderMap, { ...defaultOptions, ...options }, defaultBlockEnv).join(
-    "\n\n",
-  )
+  renderFromString(markdown, builderMap, {
+    preserveEscapes: true,
+    builderArgs: [{ ...defaultOptions, ...options }, defaultBlockEnv],
+  }).join("\n\n")
 
 /**
  * Prints block markdown nodes, effectively a complete Markdown document, as a string.

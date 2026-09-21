@@ -51,7 +51,9 @@ const positionInStringToColumnAndRow = (
 export const validateInline = (
   markdown: string,
 ): InternalMarkdownError | MarkdownSyntaxError | undefined => {
-  const results = inlineMarkdown.evalT({ indentation: 0, keepSyntax: false }).parse(markdown)
+  const results = inlineMarkdown
+    .evalT({ indentation: 0, keepSyntax: false, preserveEscapes: false })
+    .parse(markdown)
 
   if (!isNotEmpty(results)) {
     return new InternalMarkdownError(`Failed to parse inline Markdown`)
@@ -76,7 +78,9 @@ export const validateInline = (
 export const validate = (
   markdown: string,
 ): InternalMarkdownError | MarkdownSyntaxError | undefined => {
-  const results = finalBlockMarkdown.evalT({ indentation: 0, keepSyntax: false }).parse(markdown)
+  const results = finalBlockMarkdown
+    .evalT({ indentation: 0, keepSyntax: false, preserveEscapes: false })
+    .parse(markdown)
 
   if (!isNotEmpty(results)) {
     return new InternalMarkdownError(`Failed to parse Markdown`)
