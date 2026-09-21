@@ -306,7 +306,7 @@ ${node.content.map(content => formatInner(content, options, env)).join("\n\n")}
 
 const builderMap = { ...blockBuilderMap, ...inlineBuilderMap }
 
-export const format = (markdown: string, options?: FormatterOptions): string =>
+export const format = (markdown: string, options?: Partial<FormatterOptions>): string =>
   renderFromString(markdown, builderMap, { ...defaultOptions, ...options }, defaultBlockEnv).join(
     "\n\n",
   )
@@ -314,7 +314,7 @@ export const format = (markdown: string, options?: FormatterOptions): string =>
 /**
  * Prints block markdown nodes, effectively a complete Markdown document, as a string.
  */
-export const print = (markdown: BlockMarkdownNode[], options?: FormatterOptions): string =>
+export const print = (markdown: BlockMarkdownNode[], options?: Partial<FormatterOptions>): string =>
   markdown
     .map(node => render(node, builderMap, { ...defaultOptions, ...options }, defaultBlockEnv))
     .join("\n\n")
