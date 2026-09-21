@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.3.3](https://github.com/elyukai/markdown/compare/v0.3.2...v0.3.3) (2026-09-21)
+
+### Features
+
+* export formatter options type ([487b7bb](https://github.com/elyukai/markdown/commit/487b7bb63e7681c2ab2a0c9253a63fde25161a7b))
+* simple formatter ([1bcbf8b](https://github.com/elyukai/markdown/commit/1bcbf8bce1b6a6d42036e10be821058970276aa4))
+* syntax validator ([9f6d090](https://github.com/elyukai/markdown/commit/9f6d0906b3b4e0ca2e9b68e55b911efa551131e7))
+
+### Bug Fixes
+
+* export formatter ([2a11df4](https://github.com/elyukai/markdown/commit/2a11df40a80f1a5f08732207879d7a2738e336fe))
+* **formatter:** options can be partial ([e9a42b1](https://github.com/elyukai/markdown/commit/e9a42b1eb9dbcfc9d7606dab62938be18912acad))
+
 ## [0.3.2](https://github.com/elyukai/markdown/compare/v0.3.1...v0.3.2) (2026-09-09)
 
 ### Bug Fixes
