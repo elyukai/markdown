@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.3.4](https://github.com/elyukai/markdown/compare/v0.3.3...v0.3.4) (2026-09-21)
+
+### Bug Fixes
+
+* **format:** preserve escape characters ([3b70fdc](https://github.com/elyukai/markdown/commit/3b70fdce1c1e9e783ee292d77aaf5a9e99e01186))
+
 ## [0.3.3](https://github.com/elyukai/markdown/compare/v0.3.2...v0.3.3) (2026-09-21)
 
 ### Features
