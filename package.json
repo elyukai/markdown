@@ -16,6 +16,7 @@
     "./render/builder": "./dist/src/render/builder.js",
     "./render/html": "./dist/src/render/html/index.js",
     "./render/strip": "./dist/src/render/strip.js",
+    "./format": "./dist/src/render/format.js",
     "./validate": "./dist/src/validate.js"
   },
   "scripts": {

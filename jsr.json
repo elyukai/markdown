@@ -8,6 +8,7 @@
     "./render/builder": "./src/render/builder.ts",
     "./render/html": "./src/render/html/index.ts",
     "./render/strip": "./src/render/strip.ts",
+    "./format": "./src/render/format.ts",
     "./validate": "./src/validate.ts"
   },
   "publish": {
