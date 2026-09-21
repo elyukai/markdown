@@ -1,5 +1,5 @@
 import type { InlineMarkdownNode } from "../parser/inline.ts"
-import { renderInline, type InlineBuilderMap } from "./builder.ts"
+import { renderInlineFromString, type InlineBuilderMap } from "./builder.ts"
 
 const buildInners = (
   node: { content: InlineMarkdownNode[] },
@@ -21,4 +21,4 @@ const inlineBuilder: InlineBuilderMap<string, []> = {
  * Strips inline markdown syntax from a string, returning only the text content.
  */
 export const stripInlineMarkdown = (markdown: string): string =>
-  renderInline(markdown, inlineBuilder).join("")
+  renderInlineFromString(markdown, inlineBuilder).join("")

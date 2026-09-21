@@ -7,8 +7,8 @@ import {
 } from "../../parser/block.js"
 import type { InlineMarkdownNode } from "../../parser/inline.ts"
 import {
-  render,
-  renderInline,
+  renderFromString,
+  renderInlineFromString,
   type BlockBuilderMap,
   type InlineBuilderMap,
   type ParseInnerNode,
@@ -54,7 +54,7 @@ export const renderInlineMarkdownAsHTML = <E extends Env>(
   markdown: string,
 ): string => {
   const { builderMapAdjustments, ...env } = config
-  return renderInline(
+  return renderInlineFromString(
     markdown,
     {
       ...(inlineBuilderMap as unknown as InlineBuilderMap<string, [env: E]>),
@@ -239,7 +239,7 @@ export const renderBlockMarkdownAsHTML = <E extends Env>(
   markdown: string,
 ): string => {
   const { builderMapAdjustments, ...env } = config
-  return render(
+  return renderFromString(
     markdown,
     {
       ...(builderMap as unknown as BlockHTMLBuilderMap<E> & InlineHTMLBuilderMap<E>),

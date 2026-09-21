@@ -56,6 +56,25 @@ const getBuilderForNode = <
 ): Builder<AnyNode, AnyNode, Result, Args, InnerArgs> => builder[node.type as keyof typeof builder]
 
 /**
+ * Renders an inline markdown node into a value of type T using the provided builder map.
+ *
+ * Each node in the parsed markdown is processed by the corresponding builder function.
+ *
+ * @param markdown The markdown node to be rendered.
+ * @param builder A map of builder functions for each node type.
+ * @returns A value of type T, which corresponds to the rendered node.
+ */
+export const renderInline = <Result, Args extends unknown[]>(
+  node: InlineMarkdownNode,
+  builder: InlineBuilderMap<Result, Args>,
+  ...args: Args
+): Result => {
+  const parseInner = (node: InlineMarkdownNode, ...args: Args): Result =>
+    getBuilderForNode<InlineMarkdownNode, Result, Args>(builder, node)(node, parseInner, ...args)
+  return parseInner(node, ...args)
+}
+
+/**
  * Renders an inline markdown string into an array of type T using the provided builder map.
  *
  * Each node in the parsed markdown is processed by the corresponding builder function.
@@ -64,7 +83,7 @@ const getBuilderForNode = <
  * @param builder A map of builder functions for each node type.
  * @returns An array of type T, where each element corresponds to a rendered node.
  */
-export const renderInline = <Result, Args extends unknown[]>(
+export const renderInlineFromString = <Result, Args extends unknown[]>(
   markdown: string,
   builder: InlineBuilderMap<Result, Args>,
   ...args: Args
@@ -72,6 +91,36 @@ export const renderInline = <Result, Args extends unknown[]>(
   const parseInner = (node: InlineMarkdownNode, ...args: Args): Result =>
     getBuilderForNode<InlineMarkdownNode, Result, Args>(builder, node)(node, parseInner, ...args)
   return parseInlineMarkdown(markdown).map(node => parseInner(node, ...args))
+}
+
+/**
+ * Renders a block markdown node into a value of type T using the provided builder map.
+ *
+ * Each node in the parsed markdown is processed by the corresponding builder function.
+ *
+ * @param markdown The block markdown node to be rendered.
+ * @param builder A map of builder functions for each node type.
+ * @returns An value of type T, which corresponds to the rendered node.
+ */
+export const render = <Result, InlineResult, Args extends unknown[]>(
+  node: BlockMarkdownNode,
+  builder: BlockBuilderMap<Result, InlineResult, Args> & InlineBuilderMap<InlineResult, Args>,
+  ...args: Args
+): Result => {
+  const parseInnerInline = (node: InlineMarkdownNode, ...args: Args): InlineResult =>
+    getBuilderForNode<InlineMarkdownNode, InlineResult, Args>(builder, node)(
+      node,
+      parseInnerInline,
+      ...args,
+    )
+
+  const parseInner = (node: BlockMarkdownNode, ...args: Args): Result =>
+    getBuilderForNode<BlockMarkdownNode, Result, BlockBuilderArgs<InlineResult, Args>, Args>(
+      builder,
+      node,
+    )(node, parseInner, parseInnerInline, ...args)
+
+  return parseInner(node, ...args)
 }
 
 /**
@@ -83,7 +132,7 @@ export const renderInline = <Result, Args extends unknown[]>(
  * @param builder A map of builder functions for each node type.
  * @returns An array of type T, where each element corresponds to a rendered node.
  */
-export const render = <Result, InlineResult, Args extends unknown[]>(
+export const renderFromString = <Result, InlineResult, Args extends unknown[]>(
   markdown: string,
   builder: BlockBuilderMap<Result, InlineResult, Args> & InlineBuilderMap<InlineResult, Args>,
   ...args: Args
