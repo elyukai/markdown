@@ -15,7 +15,7 @@ import {
   type InlineBuilderMap,
 } from "./builder.ts"
 
-type FormatterOptions = {
+export type FormatterOptions = {
   alignTableDividers: boolean
 }
 
