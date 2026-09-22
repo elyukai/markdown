@@ -496,11 +496,40 @@ const tableCaptionRowSyntax = sepByKeepFlat(
 )
 
 const tableHeaderRow = tableRow(
-  tableContentCellGuard.then(() => inlineNodes),
+  tableContentCellGuard
+    .then(() => inlineNodes)
+    .htoken()
+    .then(content =>
+      SParser.lookahead(SParser.string<S>("||"))
+        .then(() => SParser.string("|"))
+        .many()
+        .map(span => ({ content, span: span.length > 0 ? span.length + 1 : undefined })),
+    ),
   false,
 )
 const tableHeaderRowSyntax = tableRowSyntax(
-  tableContentCellGuard.then(() => inlineNodes),
+  tableContentCellGuard.then(() =>
+    inlineNodes.then(content =>
+      anySpacesT.then(trailingSpace =>
+        SParser.lookahead(SParser.string<S>("||"))
+          .then(() => SParser.string("|"))
+          .many()
+          .map(span => [
+            ...content,
+            asText(trailingSpace),
+            ...(span.length > 0
+              ? [
+                  {
+                    type: "syntax" as const,
+                    blockType: "table" as const,
+                    content: "|".repeat(span.length),
+                  },
+                ]
+              : []),
+          ]),
+      ),
+    ),
+  ),
   false,
 )
 const tableSeparatorRow = tableRow(tableHeaderSeparatorCell.htoken())
@@ -593,11 +622,6 @@ const tableBodyRowSyntax = tableSectionSubheaderWithSeparatorRowSyntax
   .orFirstW(tableSectionPlainSeparatorRowSyntax)
   .orFirstW(tableNormalRowSyntax)
 
-const mapCell = (cell: InlineMarkdownNode[]): TableCell => ({
-  type: "tableCell",
-  content: trimLastNodeEnd(cell),
-})
-
 const mapCellObj = (cell: { content: InlineMarkdownNode[]; span?: number }): TableCell =>
   omitUndefinedKeys({
     type: "tableCell",
@@ -656,7 +680,7 @@ const table: StatefulParser<Table> = tableCaptionRow.then(caption =>
                 columns: separators.map((cell): TableColumnStyle =>
                   omitUndefinedKeys({ alignment: getAlignmentFromSeparator(cell) }),
                 ),
-                header: header.map(mapCell),
+                header: header.map(mapCellObj),
                 rows: sectionRows(rows),
               }),
             ),
