@@ -123,8 +123,9 @@ const calculateColumnWidths = (
     row.reduce<number[]>((acc, cell, index) => {
       const colSpan = cell.colSpan ?? 1
       const currentWidth = sum(acc.slice(index, index + colSpan)) + (colSpan - 1) * 3 // account for the " | " separators
-      if (cell.text.length > currentWidth) {
-        const extraWidth = cell.text.length - currentWidth
+      const neededWidth = cell.text.length + (colSpan - 1) * 3 // account for the trailing "|" colSpan indicators
+      if (neededWidth > currentWidth) {
+        const extraWidth = neededWidth - currentWidth
         const extraWidthPerColumn = Math.ceil(extraWidth / colSpan)
         for (let i = 0; i < colSpan; i++) {
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -166,13 +167,24 @@ const blockBuilderMap: BlockBuilderMap<string, string, [options: FormatterOption
     list: (node, formatInner, formatInnerInline, options, env) => {
       const innerEnv = { ...env, nesting: env.nesting + 1 }
       return node.content
-        .map(item =>
-          [
-            ...(item.inlineLabel === undefined
-              ? []
-              : [item.inlineLabel.map(content => formatInnerInline(content, options, innerEnv))]),
-            ...item.content.map(content => formatInner(content, options, innerEnv)),
-          ].join("\n\n"),
+        .map((item, index) =>
+          indentTail(
+            (node.ordered ? (index + 1).toFixed() + "." : "-") +
+              " " +
+              (item.inlineLabel === undefined
+                ? ""
+                : item.inlineLabel
+                    .map(content => formatInnerInline(content, options, innerEnv))
+                    .join("") +
+                  item.content
+                    .map(
+                      (content, index) =>
+                        (content.type === "list" && index === 0 && item.content.length === 1
+                          ? "\n"
+                          : "\n\n") + formatInner(content, options, innerEnv),
+                    )
+                    .join("")),
+          ),
         )
         .join("\n")
     },
@@ -261,17 +273,26 @@ const blockBuilderMap: BlockBuilderMap<string, string, [options: FormatterOption
 
       const formatContentRow = columnWidths
         ? (row: RenderedContentRow) =>
-            "| " +
+            "|" +
             row.cells
               .map((cell, index) => {
                 const colSpan = cell.colSpan ?? 1
                 const totalWidth =
                   sum(columnWidths.slice(index, index + colSpan)) + (colSpan - 1) * 3 // account for the " | " separators
-                return cell.text.padEnd(totalWidth, " ")
+                return " " + cell.text.padEnd(totalWidth, " ") + " " + "|".repeat(colSpan)
               })
-              .join(" | ") +
-            " |"
-        : (row: RenderedContentRow) => "| " + row.cells.map(cell => cell.text).join(" | ") + " |"
+              .join("")
+        : (row: RenderedContentRow) =>
+            "|" +
+            row.cells
+              .map(
+                cell =>
+                  (cell.text.length > 0 ? " " : "") +
+                  cell.text +
+                  " " +
+                  "|".repeat(cell.colSpan ?? 1),
+              )
+              .join("")
 
       return (
         (caption?.map(formatCaptionRow).join("") ?? "") +
@@ -298,11 +319,12 @@ ${node.content.map(content => formatInner(content, options, env)).join("\n\n")}
               .map(term => term.map(content => formatInnerInline(content, options, env)).join(""))
               .join("\n") +
             item.descriptions
-              .map(description =>
-                indentTail(
+              .map(
+                description =>
                   "\n: " +
+                  indentTail(
                     description.map(content => formatInner(content, options, env)).join("\n\n"),
-                ),
+                  ),
               )
               .join(""),
         )
