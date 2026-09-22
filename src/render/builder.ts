@@ -156,3 +156,12 @@ export const renderFromString = <Result, InlineResult, Args extends unknown[]>(
     parseInner(node, ...options.builderArgs),
   )
 }
+
+/**
+ * Helper function for a builder that simply passed through the inner nodes and collects their results into a flat array.
+ */
+export const passThroughInnerFlat = <R, Args extends unknown[]>(
+  node: { content: InlineMarkdownNode[] },
+  validateInner: ParseInnerNode<R[], InlineMarkdownNode, Args>,
+  ...args: Args
+): R[] => node.content.flatMap(content => validateInner(content, ...args))
