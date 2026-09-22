@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.4.0](https://github.com/elyukai/markdown/compare/v0.3.4...v0.4.0) (2026-09-22)
+
+### ⚠ BREAKING CHANGES
+
+* **validator:** attribute validation option
+
+### Features
+
+* **validator:** attribute validation option ([30ccc8d](https://github.com/elyukai/markdown/commit/30ccc8db056712d3ec1fa22e6277bdd5047de6a5))
+
+### Bug Fixes
+
+* **format:** multiple smaller issues that broke syntax ([6b542dd](https://github.com/elyukai/markdown/commit/6b542ddb72da43941676036f3e91ebb88d506ad4))
+* **parser:** table header can have col span ([8cf2c42](https://github.com/elyukai/markdown/commit/8cf2c4266b96c01a68dd7d12739627940ab06b07))
+
 ## [0.3.4](https://github.com/elyukai/markdown/compare/v0.3.3...v0.3.4) (2026-09-21)
 
 ### Bug Fixes
