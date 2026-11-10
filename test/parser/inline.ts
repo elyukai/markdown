@@ -28,7 +28,12 @@ describe("parseInlineMarkdown", () => {
   it("keeps escaped characters when syntax highlighting option enabled", () => {
     deepEqual<InlineMarkdownNode[]>(
       parseInlineMarkdownForSyntaxHighlighting("This is not \\`code\\` and not \\*\\*bold\\*\\*."),
-      [{ type: "text", content: "This is not \\`code\\` and not \\*\\*bold\\*\\*." }],
+      [
+        {
+          type: "text",
+          content: "This is not \\`code\\` and not \\*\\*bold\\*\\*.",
+        },
+      ],
     )
   })
 
@@ -104,7 +109,10 @@ describe("parseInlineMarkdown", () => {
           { type: "text", content: "This is not *" },
           { type: "italic", content: [{ type: "text", content: "bold*" }] },
           { type: "text", content: ". This is **also** not bold. This is " },
-          { type: "bold", content: [{ type: "text", content: "bold with ** inside" }] },
+          {
+            type: "bold",
+            content: [{ type: "text", content: "bold with ** inside" }],
+          },
           { type: "text", content: "." },
         ],
       )
@@ -148,7 +156,10 @@ describe("parseInlineMarkdown", () => {
         parseInlineMarkdown("This is not \\*italic\\*. This is *italic with \\* inside*."),
         [
           { type: "text", content: "This is not *italic*. This is " },
-          { type: "italic", content: [{ type: "text", content: "italic with * inside" }] },
+          {
+            type: "italic",
+            content: [{ type: "text", content: "italic with * inside" }],
+          },
           { type: "text", content: "." },
         ],
       )
@@ -189,7 +200,10 @@ describe("parseInlineMarkdown", () => {
           type: "bold",
           content: [
             { type: "text", content: "bold and " },
-            { type: "italic", content: [{ type: "text", content: "italic" }] },
+            {
+              type: "italic",
+              content: [{ type: "text", content: "italic" }],
+            },
           ],
         },
       ])
@@ -204,7 +218,10 @@ describe("parseInlineMarkdown", () => {
             type: "bold",
             content: [
               { type: "text", content: "bold and " },
-              { type: "italic", content: [{ type: "text", content: "italic" }] },
+              {
+                type: "italic",
+                content: [{ type: "text", content: "italic" }],
+              },
               { type: "text", content: " in parts" },
             ],
           },
@@ -218,7 +235,10 @@ describe("parseInlineMarkdown", () => {
         {
           type: "bold",
           content: [
-            { type: "italic", content: [{ type: "text", content: "italic" }] },
+            {
+              type: "italic",
+              content: [{ type: "text", content: "italic" }],
+            },
             { type: "text", content: " and bold" },
           ],
         },
@@ -338,12 +358,18 @@ describe("parseInlineMarkdown", () => {
           "This is not a \\[link\\](https://example.com). This is a [link with \\[escaped brackets\\] and \\(escaped parentheses\\)](https://example.com).",
         ),
         [
-          { type: "text", content: "This is not a [link](https://example.com). This is a " },
+          {
+            type: "text",
+            content: "This is not a [link](https://example.com). This is a ",
+          },
           {
             type: "link",
             href: "https://example.com",
             content: [
-              { type: "text", content: "link with [escaped brackets] and (escaped parentheses)" },
+              {
+                type: "text",
+                content: "link with [escaped brackets] and (escaped parentheses)",
+              },
             ],
           },
           { type: "text", content: "." },
@@ -487,7 +513,10 @@ describe("parseInlineMarkdown", () => {
         parseInlineMarkdownForSyntaxHighlighting("This is ^superscript^."),
         [
           { type: "text", content: "This is " },
-          { type: "superscript", content: [{ type: "text", content: "^superscript^" }] },
+          {
+            type: "superscript",
+            content: [{ type: "text", content: "^superscript^" }],
+          },
           { type: "text", content: "." },
         ],
       )
@@ -532,9 +561,15 @@ describe("parseInlineMarkdown", () => {
           { type: "bold", content: [{ type: "text", content: "Bold" }] },
           { type: "text", content: " and " },
           { type: "bold", content: [{ type: "text", content: "bold" }] },
-          { type: "text", content: " might also come directly after each other and an " },
+          {
+            type: "text",
+            content: " might also come directly after each other and an ",
+          },
           { type: "italic", content: [{ type: "text", content: "italic" }] },
-          { type: "text", content: " might also be followed directly by another " },
+          {
+            type: "text",
+            content: " might also be followed directly by another ",
+          },
           { type: "bold", content: [{ type: "text", content: "bold" }] },
           { type: "text", content: " one." },
         ],

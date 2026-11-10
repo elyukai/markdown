@@ -69,8 +69,12 @@ export const renderInline = <Result, Args extends unknown[]>(
   builder: InlineBuilderMap<Result, Args>,
   ...args: Args
 ): Result => {
-  const parseInner = (node: InlineMarkdownNode, ...args: Args): Result =>
-    getBuilderForNode<InlineMarkdownNode, Result, Args>(builder, node)(node, parseInner, ...args)
+  const parseInner = (innerNode: InlineMarkdownNode, ...innerArgs: Args): Result =>
+    getBuilderForNode<InlineMarkdownNode, Result, Args>(builder, innerNode)(
+      innerNode,
+      parseInner,
+      ...innerArgs,
+    )
   return parseInner(node, ...args)
 }
 
@@ -109,18 +113,18 @@ export const render = <Result, InlineResult, Args extends unknown[]>(
   builder: BlockBuilderMap<Result, InlineResult, Args> & InlineBuilderMap<InlineResult, Args>,
   ...args: Args
 ): Result => {
-  const parseInnerInline = (node: InlineMarkdownNode, ...args: Args): InlineResult =>
-    getBuilderForNode<InlineMarkdownNode, InlineResult, Args>(builder, node)(
-      node,
+  const parseInnerInline = (innerNode: InlineMarkdownNode, ...innerArgs: Args): InlineResult =>
+    getBuilderForNode<InlineMarkdownNode, InlineResult, Args>(builder, innerNode)(
+      innerNode,
       parseInnerInline,
-      ...args,
+      ...innerArgs,
     )
 
-  const parseInner = (node: BlockMarkdownNode, ...args: Args): Result =>
+  const parseInner = (innerNode: BlockMarkdownNode, ...innerArgs: Args): Result =>
     getBuilderForNode<BlockMarkdownNode, Result, BlockBuilderArgs<InlineResult, Args>, Args>(
       builder,
-      node,
-    )(node, parseInner, parseInnerInline, ...args)
+      innerNode,
+    )(innerNode, parseInner, parseInnerInline, ...innerArgs)
 
   return parseInner(node, ...args)
 }

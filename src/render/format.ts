@@ -33,30 +33,25 @@ const defaultBlockEnv: BlockEnv = {
 
 const inlineBuilderMap: InlineBuilderMap<string, [options: FormatterOptions, env: BlockEnv]> = {
   bold: (node, formatInner, options, env) =>
-    "**" + node.content.map(childNode => formatInner(childNode, options, env)).join("") + "**",
+    `**${node.content.map(childNode => formatInner(childNode, options, env)).join("")}**`,
   italic: (node, formatInner, options, env) =>
-    "*" + node.content.map(childNode => formatInner(childNode, options, env)).join("") + "*",
-  code: node => "`" + node.content.replaceAll("`", "\\`") + "`",
+    `*${node.content.map(childNode => formatInner(childNode, options, env)).join("")}*`,
+  code: node => `\`${node.content.replaceAll("`", "\\`")}\``,
   link: (node, formatInner, options, env) =>
-    "[" +
-    node.content.map(childNode => formatInner(childNode, options, env)).join("") +
-    "](" +
-    node.href +
-    ")",
+    `[${node.content.map(childNode => formatInner(childNode, options, env)).join("")}](${
+      node.href
+    })`,
   attributed: (node, formatInner, options, env) =>
-    "^[" +
-    node.content.map(childNode => formatInner(childNode, options, env)).join("") +
-    "](" +
-    Object.entries(node.attributes)
-      .map(([key, value]) => key + ": " + JSON.stringify(value))
-      .join(", ") +
-    ")",
+    `^[${node.content
+      .map(childNode => formatInner(childNode, options, env))
+      .join("")}](${Object.entries(node.attributes)
+      .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
+      .join(", ")})`,
   text: node => node.content,
   superscript: (node, formatInner, options, env) =>
-    "^" + node.content.map(childNode => formatInner(childNode, options, env)).join("") + "^",
-  footnoteRef: node =>
-    "[^" + (typeof node.label === "number" ? node.label.toFixed() : node.label) + "]",
-  icon: node => ":" + node.name + ":",
+    `^${node.content.map(childNode => formatInner(childNode, options, env)).join("")}^`,
+  footnoteRef: node => `[^${typeof node.label === "number" ? node.label.toFixed() : node.label}]`,
+  icon: node => `:${node.name}:`,
 }
 
 /**
@@ -83,7 +78,7 @@ export const printInline = (markdown: InlineMarkdownNode[]): string =>
 /**
  * Indents all lines exept for the first line by two spaces.
  */
-const indentTail = (text: string): string => text.replace(/\n(?!\s*\n)/g, "\n  ")
+const indentTail = (text: string): string => text.replace(/\n(?!\s*\n)/gu, "\n  ")
 
 type RenderedContentRow = {
   cells: {
@@ -145,7 +140,7 @@ const calculateColumnWidths = (
     renderedCaption?.reduce(
       (acc, captionRow) =>
         getCombinedColumnWidthsFromRow(acc, [
-          { text: "#" + captionRow + "#", colSpan: node.columns.length },
+          { text: `#${captionRow}#`, colSpan: node.columns.length },
         ]),
       combinedColumnWidthsForRows,
     ) ?? combinedColumnWidthsForRows
@@ -162,29 +157,31 @@ const blockBuilderMap: BlockBuilderMap<string, string, [options: FormatterOption
         )
         .join(""),
     heading: (node, _formatInner, formatInnerInline, options, env) =>
-      "#".repeat(node.level) +
-      " " +
-      node.content.map(content => formatInnerInline(content, options, env)).join(""),
+      `${"#".repeat(node.level)} ${node.content
+        .map(content => formatInnerInline(content, options, env))
+        .join("")}`,
     list: (node, formatInner, formatInnerInline, options, env) => {
       const innerEnv = { ...env, nesting: env.nesting + 1 }
       return node.content
-        .map((item, index) =>
+        .map((item, listItemIndex) =>
           indentTail(
-            (node.ordered ? (index + 1).toFixed() + "." : "-") +
-              " " +
-              (item.inlineLabel === undefined
+            `${node.ordered ? `${(listItemIndex + 1).toFixed()}.` : "-"} ${
+              item.inlineLabel === undefined
                 ? ""
                 : item.inlineLabel
                     .map(content => formatInnerInline(content, options, innerEnv))
                     .join("") +
                   item.content
                     .map(
-                      (content, index) =>
-                        (content.type === "list" && index === 0 && item.content.length === 1
+                      (content, listItemContentIndex) =>
+                        (content.type === "list" &&
+                        listItemContentIndex === 0 &&
+                        item.content.length === 1
                           ? "\n"
                           : "\n\n") + formatInner(content, options, innerEnv),
                     )
-                    .join("")),
+                    .join("")
+            }`,
           ),
         )
         .join("\n")
@@ -220,7 +217,12 @@ const blockBuilderMap: BlockBuilderMap<string, string, [options: FormatterOption
               ...(section.header === undefined
                 ? sectionIndex === 0
                   ? []
-                  : [{ type: "divider" as const, cells: node.columns.map(() => ({ middle: "-" })) }]
+                  : [
+                      {
+                        type: "divider" as const,
+                        cells: node.columns.map(() => ({ middle: "-" })),
+                      },
+                    ]
                 : [
                     {
                       type: "divider" as const,
@@ -243,57 +245,50 @@ const blockBuilderMap: BlockBuilderMap<string, string, [options: FormatterOption
 
       const formatCaptionRow = columnWidths
         ? (row: string) =>
-            "|# " + row.padStart(sum(columnWidths) + (columnWidths.length - 1) * 3, " ") + " #|\n"
-        : (row: string) => "|# " + row + " #|\n"
+            `|# ${row.padStart(sum(columnWidths) + (columnWidths.length - 1) * 3, " ")} #|\n`
+        : (row: string) => `|# ${row} #|\n`
 
       const formatDividerRow = columnWidths
         ? (row: RenderedDividerRow) =>
-            "| " +
-            row.cells
+            `| ${row.cells
               .map((cell, index) => {
                 const left = cell.left ?? ""
-                const middle = cell.middle
+                const { middle } = cell
                 const right = cell.right ?? ""
                 const middleWidth = (columnWidths[index] ?? 0) - left.length - right.length
                 return left + middle.repeat(middleWidth) + right
               })
-              .join(" | ") +
-            " |"
+              .join(" | ")} |`
         : (row: RenderedDividerRow) =>
-            "| " +
-            row.cells
+            `| ${row.cells
               .map(cell => {
                 const left = cell.left ?? ""
-                const middle = cell.middle
+                const { middle } = cell
                 const right = cell.right ?? ""
                 const middleWidth = 3 - left.length - right.length
                 return left + middle.repeat(middleWidth) + right
               })
-              .join(" | ") +
-            " |"
+              .join(" | ")} |`
 
       const formatContentRow = columnWidths
         ? (row: RenderedContentRow) =>
-            "|" +
-            row.cells
+            `|${row.cells
               .map((cell, index) => {
                 const colSpan = cell.colSpan ?? 1
                 const totalWidth =
                   sum(columnWidths.slice(index, index + colSpan)) + (colSpan - 1) * 3 // account for the " | " separators
-                return " " + cell.text.padEnd(totalWidth, " ") + " " + "|".repeat(colSpan)
+                return ` ${cell.text.padEnd(totalWidth, " ")} ${"|".repeat(colSpan)}`
               })
-              .join("")
+              .join("")}`
         : (row: RenderedContentRow) =>
-            "|" +
-            row.cells
+            `|${row.cells
               .map(
                 cell =>
-                  (cell.text.length > 0 ? " " : "") +
-                  cell.text +
-                  " " +
-                  "|".repeat(cell.colSpan ?? 1),
+                  `${(cell.text.length > 0 ? " " : "") + cell.text} ${"|".repeat(
+                    cell.colSpan ?? 1,
+                  )}`,
               )
-              .join("")
+              .join("")}`
 
       return (
         (caption?.map(formatCaptionRow).join("") ?? "") +
@@ -303,7 +298,7 @@ const blockBuilderMap: BlockBuilderMap<string, string, [options: FormatterOption
       )
     },
     container: (node, formatInner, _formatInnerInline, options, env) =>
-      `:::${node.name === undefined ? "" : " " + node.name}
+      `:::${node.name === undefined ? "" : ` ${node.name}`}
 
 ${node.content.map(content => formatInner(content, options, env)).join("\n\n")}
 
@@ -322,10 +317,9 @@ ${node.content.map(content => formatInner(content, options, env)).join("\n\n")}
             item.descriptions
               .map(
                 description =>
-                  "\n: " +
-                  indentTail(
+                  `\n: ${indentTail(
                     description.map(content => formatInner(content, options, env)).join("\n\n"),
-                  ),
+                  )}`,
               )
               .join(""),
         )

@@ -15,8 +15,8 @@ import { getSyntaxSetting, type S, type StatefulParser } from "./state.ts"
 
 const asText = (content: string): Text => ({ type: "text", content })
 const asSingleText = (content: string): [Text] => [asText(content)]
-const anySpacesT = SParser.regex<S>(/^ */)
-const oneOrMoreSpacesT = SParser.regex<S>(/^ +/).map(asSingleText)
+const anySpacesT = SParser.regex<S>(/^ */u)
+const oneOrMoreSpacesT = SParser.regex<S>(/^ +/u).map(asSingleText)
 const newlineT = SParser.string<S>("\n")
 const anyWhitespaceT = SParser.space<S>()
 
@@ -120,7 +120,13 @@ export type DefinitionListItem = {
 }
 
 export type BlockMarkdownNode =
-  DefinitionList | Footnote | Container | Table | List | Heading | Paragraph
+  | DefinitionList
+  | Footnote
+  | Container
+  | Table
+  | List
+  | Heading
+  | Paragraph
 
 export type Syntax = {
   type: "syntax"
@@ -141,7 +147,7 @@ export type BlockMarkdownSyntaxNode = InlineMarkdownNode | Syntax
 
 const getIndentation = SParser.getsT((state: S) => state.indentation)
 
-const indentation: StatefulParser<[Text]> = getIndentation.then(indentation =>
+const indent: StatefulParser<[Text]> = getIndentation.then(indentation =>
   SParser.string<S>(" ".repeat(indentation)).map(asSingleText),
 )
 
@@ -150,7 +156,7 @@ const increaseIndentation = (state: S) => ({
   indentation: state.indentation + 2,
 })
 
-const withIndentation = <T>(parser: StatefulParser<T>): StatefulParser<T> =>
+const withIndent = <T>(parser: StatefulParser<T>): StatefulParser<T> =>
   getIndentation.then(indentation => {
     const resetIndentation = (state: S) => ({
       ...state,
@@ -162,15 +168,15 @@ const withIndentation = <T>(parser: StatefulParser<T>): StatefulParser<T> =>
       .then(content => SParser.of<S, T>(content).withT(resetIndentation))
   })
 
-const lineBreak: StatefulParser<(Break | Text)[]> = SParser.regex<S>(/\n(?!\s*\n|\s*$)/).then(() =>
-  indentation.then(indent =>
+const lineBreak: StatefulParser<(Break | Text)[]> = SParser.regex<S>(/\n(?!\s*\n|\s*$)/u).then(() =>
+  indent.then(indentation =>
     getSyntaxSetting.map(keepSyntax =>
       keepSyntax
         ? [
             {
               type: "break",
             },
-            ...indent,
+            ...indentation,
           ]
         : [
             {
@@ -199,7 +205,7 @@ const paragraphSyntax: StatefulParser<InternalBlockMarkdownSyntaxNode[]> =
     .then(() => paragraphContent)
     .map(content => content.flat())
 
-const headingDelimiter = SParser.regex<S>(/^#{1,6}/)
+const headingDelimiter = SParser.regex<S>(/^#{1,6}/u)
 const heading: StatefulParser<Heading> = headingDelimiter.then(result =>
   oneOrMoreSpacesT.then(() =>
     inlineNodes.map(content => ({
@@ -221,7 +227,7 @@ const headingSyntax: StatefulParser<InternalBlockMarkdownSyntaxNode[]> = heading
 )
 
 const singleLineBreakAndIndentation = newlineT.then(newline =>
-  indentation.map(indent => asSingleText(newline + indent[0].content)),
+  indent.map(indentation => asSingleText(newline + indentation[0].content)),
 )
 const strictBlankLines = anySpacesT
   .then(spaces => newlineT.map(newline => spaces + newline))
@@ -236,25 +242,29 @@ const anyBlankLines = anySpacesT
   })
 const blankLines = newlineT.then(newline =>
   strictBlankLines.then(lines =>
-    indentation.map(indent => asSingleText(newline + lines[0].content + indent[0].content)),
+    indent.map(indentation => asSingleText(newline + lines[0].content + indentation[0].content)),
   ),
 )
 
 const unorderedListItemStartDelimiter = SParser.string<S>("-")
-const orderedListItemStartDelimiter = SParser.regex<S>(/^\d+\./)
+const orderedListItemStartDelimiter = SParser.regex<S>(/^\d+\./u)
 const listItemContent = oneOrMoreSpacesT
   .then(() => inlineNodes)
   .then(inlineLabel =>
-    withIndentation(anyBlankLines.then(() => indentation.then(() => blockMarkdown)))
+    withIndent(anyBlankLines.then(() => indent.then(() => blockMarkdown)))
       .optional()
-      .map((content = []): ListItem => ({ type: "listItem", inlineLabel, content })),
+      .map((content = []): ListItem => ({
+        type: "listItem",
+        inlineLabel,
+        content,
+      })),
   )
 const listItemContentSyntax: StatefulParser<InternalBlockMarkdownSyntaxNode[]> =
   oneOrMoreSpacesT.then(space =>
     inlineNodes.then(inlineLabel =>
-      withIndentation(
+      withIndent(
         anyBlankLines
-          .then((lines: Text[]) => indentation.map(indent => lines.concat(indent)))
+          .then((lines: Text[]) => indent.map(indentation => lines.concat(indentation)))
           .then(nextLineSpacing =>
             blockMarkdownSyntax.map(content => [...nextLineSpacing, ...content]),
           ),
@@ -277,7 +287,11 @@ const list = (start: StatefulParser<string>, ordered: boolean): StatefulParser<L
 const listItemSyntax = (start: StatefulParser<string>, ordered: boolean) =>
   start.then(startDelim =>
     listItemContentSyntax.map((content): InternalBlockMarkdownSyntaxNode[] => [
-      { type: "syntax", blockType: ordered ? "orderedList" : "unorderedList", content: startDelim },
+      {
+        type: "syntax",
+        blockType: ordered ? "orderedList" : "unorderedList",
+        content: startDelim,
+      },
       ...content,
     ]),
   )
@@ -303,23 +317,23 @@ const orderedListSyntax = listSyntax(orderedListItemStartDelimiter, true)
 const unorderedList = list(unorderedListItemStartDelimiter, false)
 const unorderedListSyntax = listSyntax(unorderedListItemStartDelimiter, false)
 
-const definitionTerms = SParser.lookahead(SParser.regex<S>(/^(?!: ).+/))
+const definitionTerms = SParser.lookahead(SParser.regex<S>(/^(?!: ).+/u))
   .then(() => inlineNode.many1())
   .separatedBy1(singleLineBreakAndIndentation)
 
 const definitionTermsSyntax = sepBy1KeepFlat<InternalBlockMarkdownSyntaxNode>(
-  SParser.lookahead(SParser.regex<S>(/^(?!: ).+/)).then(() => inlineNode.many1()),
+  SParser.lookahead(SParser.regex<S>(/^(?!: ).+/u)).then(() => inlineNode.many1()),
   singleLineBreakAndIndentation,
 )
 
 const definitionDescriptions = singleLineBreakAndIndentation
-  .then(() => SParser.string<S>(": ").then(() => withIndentation(blockMarkdown)))
+  .then(() => SParser.string<S>(": ").then(() => withIndent(blockMarkdown)))
   .many1()
 
 const definitionDescriptionsSyntax = singleLineBreakAndIndentation
   .then(whitespace =>
     SParser.string<S>(": ").then(colonSpace =>
-      withIndentation(blockMarkdownSyntax).map((content): InternalBlockMarkdownSyntaxNode[] => [
+      withIndent(blockMarkdownSyntax).map((content): InternalBlockMarkdownSyntaxNode[] => [
         ...whitespace,
         { type: "syntax", blockType: "definitionList", content: colonSpace },
         ...content,
@@ -347,7 +361,7 @@ const definitionListSyntax = sepBy1KeepFlat<InternalBlockMarkdownSyntaxNode>(
 )
 
 const containerDelimiter = SParser.string<S>(":::")
-const containerName = SParser.regex<S>(/^\w+(?:[-_]\w+)*/)
+const containerName = SParser.regex<S>(/^\w+(?:[-_]\w+)*/u)
 
 const container: StatefulParser<Container> = containerDelimiter
   .then(() => oneOrMoreSpacesT)
@@ -365,10 +379,10 @@ const containerSyntax: StatefulParser<InternalBlockMarkdownSyntaxNode[]> = conta
     oneOrMoreSpacesT.then(delimSpace =>
       containerName.then(name =>
         blankLines.then(startSpace =>
-          indentation.then(startIndent =>
+          indent.then(startIndent =>
             blockMarkdownSyntax.then(content =>
               blankLines.then(endSpace =>
-                indentation.then(endIndent =>
+                indent.then(endIndent =>
                   containerDelimiter.map((endDelim): InternalBlockMarkdownSyntaxNode[] => [
                     {
                       type: "syntax",
@@ -378,7 +392,11 @@ const containerSyntax: StatefulParser<InternalBlockMarkdownSyntaxNode[]> = conta
                     asText(startSpace[0].content + startIndent[0].content),
                     ...content,
                     asText(endSpace[0].content + endIndent[0].content),
-                    { type: "syntax", blockType: "container", content: endDelim },
+                    {
+                      type: "syntax",
+                      blockType: "container",
+                      content: endDelim,
+                    },
                   ]),
                 ),
               ),
@@ -392,7 +410,7 @@ const containerSyntax: StatefulParser<InternalBlockMarkdownSyntaxNode[]> = conta
 const footnote: StatefulParser<Footnote> = footnoteRef.then(ref =>
   SParser.string<S>(":")
     .then(() => oneOrMoreSpacesT)
-    .then(() => withIndentation(blockMarkdown))
+    .then(() => withIndent(blockMarkdown))
     .map(content => ({
       type: "footnote",
       label: ref.label,
@@ -403,8 +421,12 @@ const footnote: StatefulParser<Footnote> = footnoteRef.then(ref =>
 const footnoteSyntax: StatefulParser<InternalBlockMarkdownSyntaxNode[]> = footnoteRef.then(ref =>
   SParser.string<S>(":").then(colon =>
     oneOrMoreSpacesT.then(space =>
-      withIndentation(blockMarkdownSyntax).map(content => [
-        { type: "syntax", blockType: "footnote", content: ref.content + colon },
+      withIndent(blockMarkdownSyntax).map(content => [
+        {
+          type: "syntax",
+          blockType: "footnote",
+          content: ref.content + colon,
+        },
         ...space,
         ...content,
       ]),
@@ -412,9 +434,9 @@ const footnoteSyntax: StatefulParser<InternalBlockMarkdownSyntaxNode[]> = footno
   ),
 )
 
-const tableHeaderSeparatorCell = SParser.regex<S>(/^:?-+:?/)
-const tableSectionWithSubheaderSeparatorCell = SParser.regex<S>(/^={3,}/)
-const tableSectionSeparatorCell = SParser.regex<S>(/^-{3,}/)
+const tableHeaderSeparatorCell = SParser.regex<S>(/^:?-+:?/u)
+const tableSectionWithSubheaderSeparatorCell = SParser.regex<S>(/^={3,}/u)
+const tableSectionSeparatorCell = SParser.regex<S>(/^-{3,}/u)
 const getAlignmentFromSeparator = (separator: string): TableColumnStyle["alignment"] => {
   const left = separator.startsWith(":")
   const right = separator.endsWith(":")
@@ -423,7 +445,7 @@ const getAlignmentFromSeparator = (separator: string): TableColumnStyle["alignme
 const tableSeparator = SParser.string<S>("|")
 const tableContentCellGuard = SParser.lookahead(SParser.regex<S>(/^ *\S+/u))
 const tableRow = <T>(parser: StatefulParser<T>, withIndentation = true): StatefulParser<T[]> =>
-  (withIndentation ? indentation.then(() => tableSeparator.htoken()) : tableSeparator.htoken())
+  (withIndentation ? indent.then(() => tableSeparator.htoken()) : tableSeparator.htoken())
     .then(() => parser.separatedBy1(tableSeparator.htoken()))
     .then(header => tableSeparator.map(() => header))
 const tableRowSyntax = (
@@ -431,7 +453,9 @@ const tableRowSyntax = (
   withIndentation = true,
 ): StatefulParser<InternalBlockMarkdownSyntaxNode[]> =>
   (withIndentation
-    ? indentation.then(indent => tableSeparator.map(startDelim => ({ indent, startDelim })))
+    ? indent.then(indentation =>
+        tableSeparator.map(startDelim => ({ indent: indentation, startDelim })),
+      )
     : tableSeparator.map((startDelim): { startDelim: string; indent?: undefined } => ({
         startDelim,
       }))
@@ -451,7 +475,11 @@ const tableRowSyntax = (
       ).then(content =>
         tableSeparator.map((endDelim): InternalBlockMarkdownSyntaxNode[] => [
           ...(startDelim.indent ?? []),
-          { type: "syntax", blockType: "table", content: startDelim.startDelim },
+          {
+            type: "syntax",
+            blockType: "table",
+            content: startDelim.startDelim,
+          },
           asText(startSpace),
           ...content,
           { type: "syntax", blockType: "table", content: endDelim },
@@ -469,7 +497,7 @@ const tableCaptionRow = SParser.string<S>("|#")
       .then(() => newlineT)
       .map(() => caption),
   )
-  .separatedBy(indentation)
+  .separatedBy(indent)
 
 const tableCaptionRowSyntax = sepByKeepFlat(
   SParser.string<S>("|#").then(startDelim =>
@@ -492,7 +520,7 @@ const tableCaptionRowSyntax = sepByKeepFlat(
       ),
     ),
   ),
-  indentation,
+  indent,
 )
 
 const tableHeaderRow = tableRow(
@@ -503,7 +531,10 @@ const tableHeaderRow = tableRow(
       SParser.lookahead(SParser.string<S>("||"))
         .then(() => SParser.string("|"))
         .many()
-        .map(span => ({ content, span: span.length > 0 ? span.length + 1 : undefined })),
+        .map(span => ({
+          content,
+          span: span.length > 0 ? span.length + 1 : undefined,
+        })),
     ),
   false,
 )
@@ -549,7 +580,10 @@ const tableNormalRow = tableRow(
       SParser.lookahead(SParser.string<S>("||"))
         .then(() => SParser.string("|"))
         .many()
-        .map(span => ({ content, span: span.length > 0 ? span.length + 1 : undefined })),
+        .map(span => ({
+          content,
+          span: span.length > 0 ? span.length + 1 : undefined,
+        })),
     ),
 )
 const tableNormalRowSyntax = tableRowSyntax(
@@ -632,7 +666,10 @@ const mapCellObj = (cell: { content: InlineMarkdownNode[]; span?: number }): Tab
 const sectionRows = (
   rows: (
     | { content: InlineMarkdownNode[]; span?: number }[]
-    | { type: "newSection"; header?: { content: InlineMarkdownNode[]; span?: number }[] }
+    | {
+        type: "newSection"
+        header?: { content: InlineMarkdownNode[]; span?: number }[]
+      }
   )[],
 ): TableRow[] | TableSection[] => {
   if (rows.some(row => "type" in row)) {
@@ -663,7 +700,7 @@ const sectionRows = (
 }
 
 const table: StatefulParser<Table> = tableCaptionRow.then(caption =>
-  (caption.length === 0 ? SParser.of<S, []>([]) : indentation).then(() =>
+  (caption.length === 0 ? SParser.of<S, []>([]) : indent).then(() =>
     tableHeaderRow.then(header =>
       newlineT
         .then(() => tableSeparatorRow)
@@ -678,7 +715,9 @@ const table: StatefulParser<Table> = tableCaptionRow.then(caption =>
                     ? undefined
                     : caption.map(captionRow => trimLastNodeEnd(captionRow)),
                 columns: separators.map((cell): TableColumnStyle =>
-                  omitUndefinedKeys({ alignment: getAlignmentFromSeparator(cell) }),
+                  omitUndefinedKeys({
+                    alignment: getAlignmentFromSeparator(cell),
+                  }),
                 ),
                 header: header.map(mapCellObj),
                 rows: sectionRows(rows),
@@ -691,25 +730,24 @@ const table: StatefulParser<Table> = tableCaptionRow.then(caption =>
 
 const tableSyntax: StatefulParser<InternalBlockMarkdownSyntaxNode[]> = tableCaptionRowSyntax.then(
   caption =>
-    (caption.length === 0 ? SParser.of<S, []>([]) : indentation).then(
-      indentBetweenCaptionAndHeader =>
-        tableHeaderRowSyntax.then(header =>
-          newlineT.then(headerNewline =>
-            tableSeparatorRowSyntax.then(separators =>
-              newlineT.then(separatorsNewline =>
-                sepBy1KeepFlat(tableBodyRowSyntax, newlineT.map(asSingleText)).map(rows => [
-                  ...caption.flat(),
-                  ...indentBetweenCaptionAndHeader,
-                  ...header,
-                  asText(headerNewline),
-                  ...separators,
-                  asText(separatorsNewline),
-                  ...rows,
-                ]),
-              ),
+    (caption.length === 0 ? SParser.of<S, []>([]) : indent).then(indentBetweenCaptionAndHeader =>
+      tableHeaderRowSyntax.then(header =>
+        newlineT.then(headerNewline =>
+          tableSeparatorRowSyntax.then(separators =>
+            newlineT.then(separatorsNewline =>
+              sepBy1KeepFlat(tableBodyRowSyntax, newlineT.map(asSingleText)).map(rows => [
+                ...caption.flat(),
+                ...indentBetweenCaptionAndHeader,
+                ...header,
+                asText(headerNewline),
+                ...separators,
+                asText(separatorsNewline),
+                ...rows,
+              ]),
             ),
           ),
         ),
+      ),
     ),
 )
 
@@ -774,7 +812,7 @@ export const _parseBlockMarkdown = (
     throw new Error(`Failed to parse`)
   }
 
-  const [result = [], remaining] = results[0]
+  const [[result = [], remaining]] = results
 
   if (remaining.length > 0) {
     return [...result, { type: "paragraph", content: [{ type: "text", content: remaining }] }]
@@ -798,7 +836,7 @@ export const parseBlockMarkdownForSyntaxHighlighting = (
     throw new Error(`Failed to parse`)
   }
 
-  const [result, remaining] = results[0]
+  const [[result, remaining]] = results
 
   if (remaining.length > 0) {
     return [...result, { type: "text", content: remaining }]

@@ -1,6 +1,6 @@
 import { deepEqual } from "assert/strict"
 import { describe, it } from "node:test"
-import { type BlockMarkdownSyntaxNode } from "../src/index.ts"
+import type { BlockMarkdownSyntaxNode } from "../src/index.ts"
 import { reduceSyntaxNodes } from "../src/reduce.ts"
 
 describe("reduceSyntaxNodes", () => {
@@ -73,19 +73,28 @@ describe("reduceSyntaxNodes", () => {
           blockType: "heading",
           content: "# ",
         },
-        { type: "text", content: "Heading 1\n\nThis is a paragraph under heading 1.\n\n" },
+        {
+          type: "text",
+          content: "Heading 1\n\nThis is a paragraph under heading 1.\n\n",
+        },
         {
           type: "syntax",
           blockType: "heading",
           content: "## ",
         },
-        { type: "text", content: "Heading 2\n\nThis is a paragraph under heading 2.\n\n" },
+        {
+          type: "text",
+          content: "Heading 2\n\nThis is a paragraph under heading 2.\n\n",
+        },
         {
           type: "syntax",
           blockType: "heading",
           content: "### ",
         },
-        { type: "text", content: "Heading 3\n\nThis is a paragraph under heading 3.\n" },
+        {
+          type: "text",
+          content: "Heading 3\n\nThis is a paragraph under heading 3.\n",
+        },
       ],
     )
   })

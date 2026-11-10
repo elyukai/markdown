@@ -148,7 +148,7 @@ export const validateInline = (
     return [new InternalMarkdownError(`Failed to parse inline Markdown`)]
   }
 
-  const [nodes, remaining] = results[0]
+  const [[nodes, remaining]] = results
 
   if (remaining.length > 0) {
     const { row, column } = positionInStringToColumnAndRow(
@@ -180,7 +180,7 @@ export const validate = (
     return [new InternalMarkdownError(`Failed to parse Markdown`)]
   }
 
-  const [nodes = [], remaining] = results[0]
+  const [[nodes = [], remaining]] = results
 
   if (remaining.length > 0) {
     const { row, column } = positionInStringToColumnAndRow(

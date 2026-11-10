@@ -109,33 +109,33 @@ const anyStopOn = (
   nonEmpty = true,
 ): StatefulParser<string> =>
   SParser.lift(
-    new Parser(syntax => {
-      if (nonEmpty && (syntax.length === 0 || syntax.startsWith("\n"))) {
+    new Parser(markdown => {
+      if (nonEmpty && (markdown.length === 0 || markdown.startsWith("\n"))) {
         return []
       }
 
-      for (let i = 0; i < syntax.length; i++) {
-        if (syntax[i] === "\\" && i + 1 < syntax.length && syntax[i + 1] !== "\n") {
+      for (let i = 0; i < markdown.length; i++) {
+        if (markdown[i] === "\\" && i + 1 < markdown.length && markdown[i + 1] !== "\n") {
           // skip next character because it's escaped
           i++
-        } else if (matchesSyntaxStartSequences(charactersToStopOnIfNotEscaped, syntax, i)) {
+        } else if (matchesSyntaxStartSequences(charactersToStopOnIfNotEscaped, markdown, i)) {
           // const trimmed = syntax.slice(0, i).trimEnd()
           // if (i === 0 || (trimmed.length === 0 && nonEmpty)) {
           //   return []
           // }
           // return [[trimmed, syntax.slice(trimmed.length)]]
-          return i === 0 ? [] : [[syntax.slice(0, i), syntax.slice(i)]]
+          return i === 0 ? [] : [[markdown.slice(0, i), markdown.slice(i)]]
         }
       }
 
-      return [[syntax, ""]]
+      return [[markdown, ""]]
     }),
   )
 
 const combineParsers = <T>(parsers: NonEmptyArray<StatefulParser<T>>): StatefulParser<T> =>
   parsers.reduce((acc, parser) => acc.orFirst(parser))
 
-const parseEscapedCharacters = (text: string) => text.replace(/\\([*_`{}[\]()\\#+-.!^])/g, "$1")
+const parseEscapedCharacters = (text: string) => text.replace(/\\([*_`{}[\]()\\#+-.!^])/gu, "$1")
 
 const asText = (content: string): Text => ({ type: "text", content })
 
@@ -147,24 +147,27 @@ const text = (syntaxStartCharacters: string[]): StatefulParser<Text> =>
   )
 
 const codeDelimiter = syntax(SParser.string<S>("`"))
-const codeText = anyStopOn(["`"]).then(result => SParser.of(result.replace(/\\`/g, "`")))
+const codeText = anyStopOn(["`"]).then(result => SParser.of(result.replace(/\\`/gu, "`")))
 const code: StatefulParser<Code> = codeDelimiter.then(start =>
   codeText.then(content =>
-    codeDelimiter.map(end => ({ type: "code", content: (start ?? "") + content + (end ?? "") })),
+    codeDelimiter.map(end => ({
+      type: "code",
+      content: (start ?? "") + content + (end ?? ""),
+    })),
   ),
 )
 
-export const footnoteRef: StatefulParser<FootnoteRef> = SParser.regex<S>(/^[a-zA-Z0-9]+/)
+export const footnoteRef: StatefulParser<FootnoteRef> = SParser.regex<S>(/^[a-zA-Z0-9]+/u)
   .between(SParser.string("[^"), SParser.string("]"))
   .then(label =>
     getSyntaxSetting.map(keepSyntax => ({
       type: "footnoteRef",
-      label: isNaturalNumber(label) ? Number.parseInt(label) : label,
+      label: isNaturalNumber(label) ? Number.parseInt(label, 10) : label,
       content: keepSyntax ? `[^${label}]` : label,
     })),
   )
 
-export const icon: StatefulParser<InlineIcon> = SParser.regex<S>(/^[a-z0-9_+-]+/)
+export const icon: StatefulParser<InlineIcon> = SParser.regex<S>(/^[a-z0-9_+-]+/u)
   .between(SParser.string(":"), SParser.string(":"))
   .then(name =>
     getSyntaxSetting.map(keepSyntax => ({
@@ -255,14 +258,14 @@ const attributedStartDelimiter = syntax(SParser.string<S>("^["))
 const attributedMiddleDelimiter = syntax(SParser.string<S>("]("))
 const attributedEndDelimiter = syntax(SParser.string<S>(")"))
 
-const attributeStringValue = SParser.regex<S>(/^[^"]*/)
+const attributeStringValue = SParser.regex<S>(/^[^"]*/u)
   .between(SParser.string('"'), SParser.string('"'))
-  .map((value): [string, string] => ['"' + value + '"', value])
-const attributeNumberValue = SParser.regex<S>(/^-?\d+(\.\d+)?/).map((value): [string, number] => [
+  .map((value): [string, string] => [`"${value}"`, value])
+const attributeNumberValue = SParser.regex<S>(/^-?\d+(\.\d+)?/u).map((value): [string, number] => [
   value,
   Number.parseFloat(value),
 ])
-const attributeBooleanValue = SParser.regex<S>(/^(true|false)/).map((value): [string, boolean] => [
+const attributeBooleanValue = SParser.regex<S>(/^(true|false)/u).map((value): [string, boolean] => [
   value,
   value === "true",
 ])
@@ -278,7 +281,7 @@ const attributeValue = SParser.hspace<S>().then(leading =>
       ]),
     ),
 )
-const attributeName = SParser.regex<S>(/^ *\w+ */)
+const attributeName = SParser.regex<S>(/^ *\w+ */u)
 
 const attribute = attributeName.then(name =>
   SParser.string<S, ":">(":").then(() =>
@@ -297,7 +300,7 @@ const attributed: RecursiveParser<Attributed> = [
               SParser.of({
                 type: "attributed",
                 attributes: Object.fromEntries(
-                  attrs.map(([name, [_, value]]) => [name.trim(), value]),
+                  attrs.map(([name, [_rawValue, value]]) => [name.trim(), value]),
                 ),
                 content:
                   start !== undefined && middle !== undefined && end !== undefined
@@ -306,7 +309,7 @@ const attributed: RecursiveParser<Attributed> = [
                         ...content,
                         asText(
                           middle +
-                            attrs.map(([name, [rawValue]]) => name + ":" + rawValue).join(",") +
+                            attrs.map(([name, [rawValue]]) => `${name}:${rawValue}`).join(",") +
                             end,
                         ),
                       ])
@@ -361,19 +364,19 @@ export const inlineNode = combineParsers([
 export const inlineMarkdown: StatefulParser<InlineMarkdownNode[]> = inlineNode.many()
 
 export const _parseInlineMarkdown = (
-  syntax: string,
+  markdown: string,
   keepSyntax = false,
   preserveEscapes = false,
 ): InlineMarkdownNode[] => {
   const results = inlineMarkdown
     .evalT({ indentation: 0, keepSyntax, preserveEscapes })
-    .parse(syntax)
+    .parse(markdown)
 
   if (!isNotEmpty(results)) {
     throw new Error(`Failed to parse`)
   }
 
-  const [result, remaining] = results[0]
+  const [[result, remaining]] = results
 
   if (remaining.length > 0) {
     throw new Error(`Failed to parse the entire string. Remaining: "${remaining}"`)
@@ -382,8 +385,8 @@ export const _parseInlineMarkdown = (
   return result
 }
 
-export const parseInlineMarkdown = (syntax: string): InlineMarkdownNode[] =>
-  _parseInlineMarkdown(syntax, false)
+export const parseInlineMarkdown = (markdown: string): InlineMarkdownNode[] =>
+  _parseInlineMarkdown(markdown, false)
 
-export const parseInlineMarkdownForSyntaxHighlighting = (syntax: string): InlineMarkdownNode[] =>
-  _parseInlineMarkdown(syntax, true)
+export const parseInlineMarkdownForSyntaxHighlighting = (markdown: string): InlineMarkdownNode[] =>
+  _parseInlineMarkdown(markdown, true)

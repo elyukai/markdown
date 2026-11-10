@@ -1,10 +1,10 @@
 import { deepEqual } from "assert/strict"
 import { describe, it } from "node:test"
-import type { BlockMarkdownSyntaxNode } from "../../src/parser/block.ts"
 import {
   parseBlockMarkdown,
   parseBlockMarkdownForSyntaxHighlighting,
   type BlockMarkdownNode,
+  type BlockMarkdownSyntaxNode,
 } from "../../src/parser/block.ts"
 
 describe("parseBlockMarkdown", () => {
@@ -59,9 +59,21 @@ describe("parseBlockMarkdown", () => {
       deepEqual<BlockMarkdownNode[]>(
         parseBlockMarkdown("# Heading 1\n\n## Heading 2\n\n### Heading 3"),
         [
-          { type: "heading", level: 1, content: [{ type: "text", content: "Heading 1" }] },
-          { type: "heading", level: 2, content: [{ type: "text", content: "Heading 2" }] },
-          { type: "heading", level: 3, content: [{ type: "text", content: "Heading 3" }] },
+          {
+            type: "heading",
+            level: 1,
+            content: [{ type: "text", content: "Heading 1" }],
+          },
+          {
+            type: "heading",
+            level: 2,
+            content: [{ type: "text", content: "Heading 2" }],
+          },
+          {
+            type: "heading",
+            level: 3,
+            content: [{ type: "text", content: "Heading 3" }],
+          },
         ],
       )
     })
@@ -79,12 +91,22 @@ describe("parseBlockMarkdown", () => {
             content: [
               {
                 type: "listItem",
-                inlineLabel: [{ type: "text", content: "This is the first unordered list item." }],
+                inlineLabel: [
+                  {
+                    type: "text",
+                    content: "This is the first unordered list item.",
+                  },
+                ],
                 content: [],
               },
               {
                 type: "listItem",
-                inlineLabel: [{ type: "text", content: "This is the second unordered list item." }],
+                inlineLabel: [
+                  {
+                    type: "text",
+                    content: "This is the second unordered list item.",
+                  },
+                ],
                 content: [],
               },
             ],
@@ -105,7 +127,12 @@ describe("parseBlockMarkdown", () => {
             content: [
               {
                 type: "listItem",
-                inlineLabel: [{ type: "text", content: "This is the first unordered list item." }],
+                inlineLabel: [
+                  {
+                    type: "text",
+                    content: "This is the first unordered list item.",
+                  },
+                ],
                 content: [
                   {
                     type: "list",
@@ -127,7 +154,12 @@ describe("parseBlockMarkdown", () => {
               },
               {
                 type: "listItem",
-                inlineLabel: [{ type: "text", content: "This is the second unordered list item." }],
+                inlineLabel: [
+                  {
+                    type: "text",
+                    content: "This is the second unordered list item.",
+                  },
+                ],
                 content: [],
               },
             ],
@@ -165,12 +197,22 @@ This is the final paragraph.`),
             content: [
               {
                 type: "listItem",
-                inlineLabel: [{ type: "text", content: "This is the first unordered list item." }],
+                inlineLabel: [
+                  {
+                    type: "text",
+                    content: "This is the first unordered list item.",
+                  },
+                ],
                 content: [],
               },
               {
                 type: "listItem",
-                inlineLabel: [{ type: "text", content: "This is the second unordered list item." }],
+                inlineLabel: [
+                  {
+                    type: "text",
+                    content: "This is the second unordered list item.",
+                  },
+                ],
                 content: [],
               },
             ],
@@ -186,7 +228,10 @@ This is the final paragraph.`),
               {
                 type: "listItem",
                 inlineLabel: [
-                  { type: "text", content: "This is the first and only ordered list item." },
+                  {
+                    type: "text",
+                    content: "This is the first and only ordered list item.",
+                  },
                 ],
                 content: [],
               },
@@ -285,22 +330,40 @@ This was a table.
             type: "table",
             columns: [{}, {}],
             header: [
-              { type: "tableCell", content: [{ type: "text", content: "Header 1" }] },
-              { type: "tableCell", content: [{ type: "text", content: "Header 2" }] },
+              {
+                type: "tableCell",
+                content: [{ type: "text", content: "Header 1" }],
+              },
+              {
+                type: "tableCell",
+                content: [{ type: "text", content: "Header 2" }],
+              },
             ],
             rows: [
               {
                 type: "tableRow",
                 cells: [
-                  { type: "tableCell", content: [{ type: "text", content: "Cell 1" }] },
-                  { type: "tableCell", content: [{ type: "text", content: "Cell 2" }] },
+                  {
+                    type: "tableCell",
+                    content: [{ type: "text", content: "Cell 1" }],
+                  },
+                  {
+                    type: "tableCell",
+                    content: [{ type: "text", content: "Cell 2" }],
+                  },
                 ],
               },
               {
                 type: "tableRow",
                 cells: [
-                  { type: "tableCell", content: [{ type: "text", content: "Cell 3" }] },
-                  { type: "tableCell", content: [{ type: "text", content: "Cell 4" }] },
+                  {
+                    type: "tableCell",
+                    content: [{ type: "text", content: "Cell 3" }],
+                  },
+                  {
+                    type: "tableCell",
+                    content: [{ type: "text", content: "Cell 4" }],
+                  },
                 ],
               },
             ],
@@ -335,22 +398,40 @@ This was a table.
             caption: [[{ type: "text", content: "Table Caption" }]],
             columns: [{}, {}],
             header: [
-              { type: "tableCell", content: [{ type: "text", content: "Header 1" }] },
-              { type: "tableCell", content: [{ type: "text", content: "Header 2" }] },
+              {
+                type: "tableCell",
+                content: [{ type: "text", content: "Header 1" }],
+              },
+              {
+                type: "tableCell",
+                content: [{ type: "text", content: "Header 2" }],
+              },
             ],
             rows: [
               {
                 type: "tableRow",
                 cells: [
-                  { type: "tableCell", content: [{ type: "text", content: "Cell 1" }] },
-                  { type: "tableCell", content: [{ type: "text", content: "Cell 2" }] },
+                  {
+                    type: "tableCell",
+                    content: [{ type: "text", content: "Cell 1" }],
+                  },
+                  {
+                    type: "tableCell",
+                    content: [{ type: "text", content: "Cell 2" }],
+                  },
                 ],
               },
               {
                 type: "tableRow",
                 cells: [
-                  { type: "tableCell", content: [{ type: "text", content: "Cell 3" }] },
-                  { type: "tableCell", content: [{ type: "text", content: "Cell 4" }] },
+                  {
+                    type: "tableCell",
+                    content: [{ type: "text", content: "Cell 3" }],
+                  },
+                  {
+                    type: "tableCell",
+                    content: [{ type: "text", content: "Cell 4" }],
+                  },
                 ],
               },
             ],
@@ -390,8 +471,14 @@ This was a table.
             type: "table",
             columns: [{}, {}],
             header: [
-              { type: "tableCell", content: [{ type: "text", content: "Header 1" }] },
-              { type: "tableCell", content: [{ type: "text", content: "Header 2" }] },
+              {
+                type: "tableCell",
+                content: [{ type: "text", content: "Header 1" }],
+              },
+              {
+                type: "tableCell",
+                content: [{ type: "text", content: "Header 2" }],
+              },
             ],
             rows: [
               {
@@ -400,8 +487,14 @@ This was a table.
                   {
                     type: "tableRow",
                     cells: [
-                      { type: "tableCell", content: [{ type: "text", content: "Cell 1" }] },
-                      { type: "tableCell", content: [{ type: "text", content: "Cell 2" }] },
+                      {
+                        type: "tableCell",
+                        content: [{ type: "text", content: "Cell 1" }],
+                      },
+                      {
+                        type: "tableCell",
+                        content: [{ type: "text", content: "Cell 2" }],
+                      },
                     ],
                   },
                 ],
@@ -409,15 +502,27 @@ This was a table.
               {
                 type: "tableSection",
                 header: [
-                  { type: "tableCell", content: [{ type: "text", content: "Subheader 1" }] },
-                  { type: "tableCell", content: [{ type: "text", content: "Subheader 2" }] },
+                  {
+                    type: "tableCell",
+                    content: [{ type: "text", content: "Subheader 1" }],
+                  },
+                  {
+                    type: "tableCell",
+                    content: [{ type: "text", content: "Subheader 2" }],
+                  },
                 ],
                 rows: [
                   {
                     type: "tableRow",
                     cells: [
-                      { type: "tableCell", content: [{ type: "text", content: "Cell 3" }] },
-                      { type: "tableCell", content: [{ type: "text", content: "Cell 4" }] },
+                      {
+                        type: "tableCell",
+                        content: [{ type: "text", content: "Cell 3" }],
+                      },
+                      {
+                        type: "tableCell",
+                        content: [{ type: "text", content: "Cell 4" }],
+                      },
                     ],
                   },
                 ],
@@ -435,8 +540,14 @@ This was a table.
                   {
                     type: "tableRow",
                     cells: [
-                      { type: "tableCell", content: [{ type: "text", content: "Cell 5" }] },
-                      { type: "tableCell", content: [{ type: "text", content: "Cell 6" }] },
+                      {
+                        type: "tableCell",
+                        content: [{ type: "text", content: "Cell 5" }],
+                      },
+                      {
+                        type: "tableCell",
+                        content: [{ type: "text", content: "Cell 6" }],
+                      },
                     ],
                   },
                 ],
@@ -447,8 +558,14 @@ This was a table.
                   {
                     type: "tableRow",
                     cells: [
-                      { type: "tableCell", content: [{ type: "text", content: "Cell 7" }] },
-                      { type: "tableCell", content: [{ type: "text", content: "Cell 8" }] },
+                      {
+                        type: "tableCell",
+                        content: [{ type: "text", content: "Cell 7" }],
+                      },
+                      {
+                        type: "tableCell",
+                        content: [{ type: "text", content: "Cell 8" }],
+                      },
                     ],
                   },
                 ],
@@ -603,7 +720,11 @@ This is not part of the footnote anymore.`,
                     inlineLabel: [{ type: "text", content: "And" }],
                     content: [],
                   },
-                  { type: "listItem", inlineLabel: [{ type: "text", content: "A" }], content: [] },
+                  {
+                    type: "listItem",
+                    inlineLabel: [{ type: "text", content: "A" }],
+                    content: [],
+                  },
                   {
                     type: "listItem",
                     inlineLabel: [{ type: "text", content: "List" }],
@@ -615,7 +736,12 @@ This is not part of the footnote anymore.`,
           },
           {
             type: "paragraph",
-            content: [{ type: "text", content: "This is not part of the footnote anymore." }],
+            content: [
+              {
+                type: "text",
+                content: "This is not part of the footnote anymore.",
+              },
+            ],
           },
         ],
       )
@@ -811,7 +937,10 @@ This is not part of the footnote anymore.`,
                 terms: [
                   [
                     { type: "text", content: "Term with " },
-                    { type: "bold", content: [{ type: "text", content: "bold" }] },
+                    {
+                      type: "bold",
+                      content: [{ type: "text", content: "bold" }],
+                    },
                   ],
                 ],
                 descriptions: [
@@ -820,7 +949,10 @@ This is not part of the footnote anymore.`,
                       type: "paragraph",
                       content: [
                         { type: "text", content: "Definition with " },
-                        { type: "italic", content: [{ type: "text", content: "italic" }] },
+                        {
+                          type: "italic",
+                          content: [{ type: "text", content: "italic" }],
+                        },
                         { type: "text", content: " and a " },
                         {
                           type: "link",
@@ -1052,7 +1184,10 @@ Term 9 with **bold**
                 terms: [
                   [
                     { type: "text", content: "Term 9 with " },
-                    { type: "bold", content: [{ type: "text", content: "bold" }] },
+                    {
+                      type: "bold",
+                      content: [{ type: "text", content: "bold" }],
+                    },
                   ],
                 ],
                 descriptions: [
@@ -1061,7 +1196,10 @@ Term 9 with **bold**
                       type: "paragraph",
                       content: [
                         { type: "text", content: "Definition 10 with " },
-                        { type: "italic", content: [{ type: "text", content: "italic" }] },
+                        {
+                          type: "italic",
+                          content: [{ type: "text", content: "italic" }],
+                        },
                         { type: "text", content: " and a " },
                         {
                           type: "link",
@@ -1192,7 +1330,11 @@ This is a special section.
         { type: "text", content: " Header 2 " },
         { type: "syntax", blockType: "table", content: "|" },
         { type: "text", content: "\n" },
-        { type: "syntax", blockType: "table", content: "|----------|----------|" },
+        {
+          type: "syntax",
+          blockType: "table",
+          content: "|----------|----------|",
+        },
         { type: "text", content: "\n" },
         { type: "syntax", blockType: "table", content: "|" },
         { type: "text", content: " Cell 1   " },
