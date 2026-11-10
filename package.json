@@ -23,29 +23,33 @@
     "build": "tsc -b",
     "watch": "tsc -b -w",
     "test": "node --import tsx --test",
-    "lint": "eslint",
-    "format": "prettier \"{src,test}/**/*.{ts,tsx}\" --write",
-    "format:check": "prettier \"{src,test}/**/*.{ts,tsx}\" --check",
+    "lint": "oxlint",
+    "format": "oxfmt \"{src,test}/**/*.{ts,tsx}\"",
+    "format:check": "oxfmt \"{src,test}/**/*.{ts,tsx}\" --check",
     "release": "commit-and-tag-version",
     "release:sign": "commit-and-tag-version --sign --signoff"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "@types/node": "^26.6.2",
+    "@elyukai/oxc-config": "^0.1.5",
+    "@types/node": "^26.6.6",
     "@typescript/native": "npm:typescript@^7.0.2",
-    "commit-and-tag-version": "^13.2.1",
-    "eslint": "^10.11.0",
-    "globals": "^17.12.0",
+    "commit-and-tag-version": "^13.3.0",
+    "oxfmt": "^0.78.0",
+    "oxlint": "^1.93.0",
+    "oxlint-tsgolint": "^7.0.2006",
     "prettier": "^3.9.8",
-    "tsx": "^4.23.13",
-    "typescript": "npm:@typescript/typescript6@^6.0.2",
-    "typescript-eslint": "^8.70.0"
+    "tsx": "^4.23.15",
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
   },
   "repository": "github:elyukai/markdown",
   "bugs": {
     "url": "https://github.com/elyukai/markdown/issues"
   },
   "dependencies": {
-    "@elyukai/utils": "^0.3.7"
+    "@elyukai/utils": "^0.3.15"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "fsevents@2.3.3": true
   }
 }
