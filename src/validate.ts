@@ -73,6 +73,7 @@ const inlineValidationMap: InlineBuilderMap<Error[], [options?: ValidationOption
   superscript: passThroughInnerFlat,
   code: emptyErrors,
   footnoteRef: emptyErrors,
+  icon: emptyErrors,
   text: emptyErrors,
 }
 

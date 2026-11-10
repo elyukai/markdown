@@ -20,6 +20,7 @@ export type Env = {
   indentation?: number
   outerHeadingLevel?: number
   footnoteLabelSuffix?: string
+  renderIcon?: (name: string) => string | undefined
 }
 
 export const indent = ({ indentation }: Env, syntax: Syntax): Syntax =>
@@ -45,6 +46,7 @@ const inlineBuilderMap: InlineHTMLBuilderMap = {
     `<sup>${node.content.map(content => parseInner(content, env)).join("")}</sup>`,
   footnoteRef: node =>
     `<sup class="footnote-ref${typeof node.label === "number" ? " footnote-ref--numeric" : ""}" style="--label: ${node.label.toString()}" data-reference="${node.label.toString()}">${node.label.toString()}</sup>`,
+  icon: (node, _parseInner, env) => env.renderIcon?.(node.name) ?? `:${node.name}":`,
 }
 
 export const renderInlineMarkdownAsHTML = <E extends Env>(

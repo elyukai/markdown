@@ -5,6 +5,7 @@ import type {
   Bold,
   Code,
   FootnoteRef,
+  InlineIcon,
   InlineMarkdownNode,
   Italic,
   Link,
@@ -23,6 +24,7 @@ type InlineSyntaxNodeByKind = {
   superscript: Superscript
   break: Break
   syntax: Syntax
+  icon: InlineIcon
 }
 
 export const reduceSyntaxNodes = <T extends InlineMarkdownNode | Break | Syntax>(nodes: T[]): T[] =>
@@ -53,6 +55,7 @@ const reduceSyntaxNode = <T extends InlineMarkdownNode | Break | Syntax>(node: T
     case "footnoteRef":
     case "break":
     case "syntax":
+    case "icon":
       return node
     default:
       return assertExhaustive(node)
@@ -73,6 +76,7 @@ const syntaxNodeMergeRules: {
   link: null,
   attributed: null,
   break: null,
+  icon: null,
 }
 
 const mergeSyntaxNodes = <T extends InlineMarkdownNode | Break | Syntax>(lastNode: T, node: T) => {

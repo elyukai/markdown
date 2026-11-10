@@ -35,7 +35,17 @@ export type FootnoteRef = {
   content: string
 }
 
-export type LeafContent = Code | Text | FootnoteRef
+export type InlineIcon = {
+  type: "icon"
+  name: string
+
+  /**
+   * Equals the name as a string. Includes the full syntax when `keepSyntax` is true.
+   */
+  content: string
+}
+
+export type LeafContent = Code | Text | FootnoteRef | InlineIcon
 
 export type Bold = {
   type: "bold"
@@ -85,6 +95,7 @@ export const trimLastNodeEnd = (nodes: InlineMarkdownNode[]): InlineMarkdownNode
       return [...nodes.slice(0, -1), { ...lastNode, content: trimLastNodeEnd(lastNode.content) }]
     case "code":
     case "footnoteRef":
+    case "icon":
       return nodes
     case "text":
       return [...nodes.slice(0, -1), { ...lastNode, content: lastNode.content.trimEnd() }]
@@ -153,9 +164,24 @@ export const footnoteRef: StatefulParser<FootnoteRef> = SParser.regex<S>(/^[a-zA
     })),
   )
 
+export const icon: StatefulParser<InlineIcon> = SParser.regex<S>(/^[a-z0-9_+-]+/)
+  .between(SParser.string(":"), SParser.string(":"))
+  .then(name =>
+    getSyntaxSetting.map(keepSyntax => ({
+      type: "icon",
+      name,
+      content: keepSyntax ? `:${name}:` : name,
+    })),
+  )
+
 const leafParsers = (
   syntaxStartCharacters: string[],
-): NonEmptyArray<StatefulParser<LeafContent>> => [code, footnoteRef, text(syntaxStartCharacters)]
+): NonEmptyArray<StatefulParser<LeafContent>> => [
+  code,
+  footnoteRef,
+  icon,
+  text(syntaxStartCharacters),
+]
 
 const leafParser = (syntaxStartCharacters: string[]) =>
   combineParsers(leafParsers(syntaxStartCharacters))

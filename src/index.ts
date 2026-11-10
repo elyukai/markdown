@@ -53,6 +53,7 @@ export const syntaxNodeToString = (node: BlockMarkdownSyntaxNode): string => {
     case "code":
     case "syntax":
     case "footnoteRef":
+    case "icon":
       return node.content
     default:
       return assertExhaustive(node)

@@ -56,6 +56,7 @@ const inlineBuilderMap: InlineBuilderMap<string, [options: FormatterOptions, env
     "^" + node.content.map(childNode => formatInner(childNode, options, env)).join("") + "^",
   footnoteRef: node =>
     "[^" + (typeof node.label === "number" ? node.label.toFixed() : node.label) + "]",
+  icon: node => ":" + node.name + ":",
 }
 
 /**

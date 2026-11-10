@@ -15,6 +15,7 @@ const inlineBuilder: InlineBuilderMap<string, []> = {
   text: node => node.content,
   superscript: buildInners,
   footnoteRef: node => node.label.toString(),
+  icon: node => node.name,
 }
 
 /**
